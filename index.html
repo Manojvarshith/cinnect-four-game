@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum Connect Four | Elite Web Arcade</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="glass-bg-container">
+    <div class="glow-orb" id="orb-1"></div>
+    <div class="glow-orb" id="orb-2"></div>
+  </div>
+
+  <main class="app-container">
+    <!-- Header Area -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="neon-logo">
+          <i data-lucide="circle-dot" class="logo-icon"></i>
+          <span>QUANTUM</span>
+        </div>
+        <span class="sub-logo">CONNECT FOUR</span>
+      </div>
+
+      <!-- Turn Indicator -->
+      <div class="turn-indicator-card" id="turn-card">
+        <span class="indicator-label">CURRENT TURN</span>
+        <div class="current-player-display">
+          <div class="token-preview player-1-color glow-red"></div>
+          <span class="player-name" id="current-player-name">Player 1</span>
+        </div>
+      </div>
+
+      <!-- Controls Toggle -->
+      <div class="game-settings">
+        <div class="setting-group">
+          <label for="mode-select"><i data-lucide="users"></i> Game Mode</label>
+          <select id="mode-select" class="custom-select">
+            <option value="ai">VS Computer AI</option>
+            <option value="pvp">Local Multiplayer</option>
+          </select>
+        </div>
+        <div class="setting-group" id="difficulty-group">
+          <label for="difficulty-select"><i data-lucide="cpu"></i> AI Intellect</label>
+          <select id="difficulty-select" class="custom-select">
+            <option value="easy">Novice</option>
+            <option value="medium" selected>Warrior</option>
+            <option value="hard">Master</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Score & Stats Bar -->
+    <section class="stats-bar">
+      <div class="stat-card player-1-stat">
+        <div class="player-info">
+          <div class="token-preview player-1-color"></div>
+          <span class="player-label">PLAYER 1</span>
+        </div>
+        <span class="stat-value" id="p1-score">0</span>
+      </div>
+
+      <div class="stat-card ties-stat">
+        <span class="player-label">DRAWN</span>
+        <span class="stat-value" id="tie-score">0</span>
+      </div>
+
+      <div class="stat-card player-2-stat">
+        <div class="player-info">
+          <div class="token-preview player-2-color" id="p2-token-preview"></div>
+          <span class="player-label" id="p2-label">COMPUTER AI</span>
+        </div>
+        <span class="stat-value" id="p2-score">0</span>
+      </div>
+    </section>
+
+    <!-- Main Game Board Container -->
+    <section class="game-container">
+      <!-- Hover column highlights -->
+      <div class="board-column-hovers" id="column-hovers">
+        <div class="hover-col" data-col="0"></div>
+        <div class="hover-col" data-col="1"></div>
+        <div class="hover-col" data-col="2"></div>
+        <div class="hover-col" data-col="3"></div>
+        <div class="hover-col" data-col="4"></div>
+        <div class="hover-col" data-col="5"></div>
+        <div class="hover-col" data-col="6"></div>
+      </div>
+
+      <!-- The physical connect four grid board -->
+      <div class="board-wrapper">
+        <div class="board-grid" id="board-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions Panel -->
+    <footer class="game-actions">
+      <button id="btn-restart" class="action-btn primary-btn">
+        <i data-lucide="rotate-ccw"></i>
+        <span>RESTART ROUND</span>
+      </button>
+      <button id="btn-reset" class="action-btn secondary-btn">
+        <i data-lucide="trash-2"></i>
+        <span>RESET MATCH</span>
+      </button>
+    </footer>
+  </main>
+
+  <!-- Overlay Modal for Win / Tie -->
+  <div class="modal-overlay" id="end-modal">
+    <div class="modal-card">
+      <div class="modal-header-glow"></div>
+      <div class="modal-content">
+        <i data-lucide="trophy" class="winner-icon" id="modal-icon"></i>
+        <h2 class="modal-title" id="modal-title">PLAYER 1 WINS!</h2>
+        <p class="modal-description" id="modal-description">A brilliant strategy delivers a crushing victory.</p>
+        <button id="btn-modal-close" class="modal-btn">PLAY AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom JS -->
+  <script src="script.js"></script>
+</body>
+</html>
