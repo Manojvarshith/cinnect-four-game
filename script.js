@@ -121,6 +121,11 @@ window.switchView = function(viewId) {
   if (window.lucide) window.lucide.createIcons();
 };
 
+window.startQuickMatch = function() {
+  switchView('play');
+  startNewMatch();
+};
+
 function bindNavigation() {
   // Sidebar items
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(btn => {
@@ -137,6 +142,15 @@ function bindNavigation() {
       if (view) switchView(view);
     });
   });
+
+  const quickMatchBtn = document.getElementById('quick-match-btn');
+  if (quickMatchBtn) {
+    quickMatchBtn.addEventListener('click', () => {
+      sound.playClick();
+      switchView('play');
+      startNewMatch();
+    });
+  }
 
   // Sidebar toggle collapse
   const sidebarToggle = document.getElementById('sidebar-toggle-btn');
@@ -718,7 +732,7 @@ function showEndModal(outcome, duration) {
 
   if (outcome === 'win') {
     if (title) title.textContent = 'VICTORY!';
-    if (sub) sub.textContent = 'You dominated the quantum arena.';
+    if (sub) sub.textContent = 'You won the match!';
     if (xpVal) xpVal.textContent = '+50 XP';
     storage.addXP(50);
   } else if (outcome === 'loss') {

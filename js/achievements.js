@@ -1,9 +1,6 @@
-
 import { storage } from './storage.js';
-import { addXp } from './stats.js';
 
 export const ACHIEVEMENTS = [
-  
   { id: 'win_1', title: 'First Victory', desc: 'Win your first Connect Four match', category: 'wins', target: 1, xp: 100, icon: 'trophy' },
   { id: 'win_5', title: 'Casual Competitor', desc: 'Achieve 5 wins', category: 'wins', target: 5, xp: 150, icon: 'award' },
   { id: 'win_10', title: 'Rising Star', desc: 'Achieve 10 wins', category: 'wins', target: 10, xp: 200, icon: 'shield' },
@@ -30,14 +27,14 @@ export const ACHIEVEMENTS = [
   { id: 'ai_easy', title: 'Novice Buster', desc: 'Beat the Easy AI', category: 'ai', target: 'easy', xp: 50, icon: 'smile' },
   { id: 'ai_medium', title: 'Warrior Tamer', desc: 'Beat the Medium AI', category: 'ai', target: 'medium', xp: 100, icon: 'swords' },
   { id: 'ai_hard', title: 'Intellect Overridden', desc: 'Beat the Hard AI', category: 'ai', target: 'hard', xp: 250, icon: 'cpu' },
-  { id: 'ai_impossible', title: 'Machine Defeated', desc: 'Beat the Impossible AI', category: 'ai', target: 'impossible', xp: 500, icon: 'terminal' },
-  { id: 'ai_impossible_fast', title: 'Speed Hacker', desc: 'Beat Impossible AI in under 15 moves', category: 'ai_special', target: 15, xp: 600, icon: 'zap' },
+  { id: 'ai_impossible', title: 'Machine Defeated', desc: 'Beat the Master AI', category: 'ai', target: 'impossible', xp: 500, icon: 'terminal' },
+  { id: 'ai_impossible_fast', title: 'Speed Hacker', desc: 'Beat Master AI in under 15 moves', category: 'ai_special', target: 15, xp: 600, icon: 'zap' },
   { id: 'ai_vs_ai', title: 'Demo Spectator', desc: 'Watch an AI vs AI demo match to completion', category: 'ai_special', target: 'demo', xp: 50, icon: 'tv' },
   { id: 'ai_play_50', title: 'Machine Sparring', desc: 'Play 50 total matches against any AI', category: 'ai_play', target: 50, xp: 400, icon: 'sliders' },
 
   { id: 'moves_10', title: 'Blitzkrieg', desc: 'Win a match in 10 moves or less', category: 'special', target: 'blitz', xp: 200, icon: 'timer' },
   { id: 'moves_8', title: 'Flash Victory', desc: 'Win a match in 8 moves or less', category: 'special', target: 'flash', xp: 350, icon: 'zap' },
-  { id: 'moves_6', title: 'Quantum Collapse', desc: 'Win a match in 6 moves or less', category: 'special', target: 'quantum', xp: 600, icon: 'zap-off' },
+  { id: 'moves_6', title: 'Swift Victory', desc: 'Win a match in 6 moves or less', category: 'special', target: 'swift', xp: 600, icon: 'zap-off' },
   { id: 'long_match', title: 'Endurance Test', desc: 'Win a match that lasts 35 or more moves', category: 'special', target: 'endure', xp: 150, icon: 'hourglass' },
   { id: 'perfect_game', title: 'Perfect Game', desc: 'Win a match without using Undo or letting opponent score', category: 'special', target: 'perfect', xp: 250, icon: 'sparkles' },
   { id: 'center_control', title: 'Center Dominator', desc: 'Win with 3 or more winning tokens in the center column', category: 'special', target: 'center', xp: 150, icon: 'align-center' },
@@ -52,6 +49,29 @@ export const ACHIEVEMENTS = [
   { id: 'level_20', title: 'Elite Ascended', desc: 'Reach Level 20', category: 'level', target: 20, xp: 1000, icon: 'sparkles' }
 ];
 
+export function getUnlockProgress() {
+  const unlocked = storage.getAchievements();
+  return {
+    unlocked: unlocked.length,
+    total: ACHIEVEMENTS.length
+  };
+}
+
+export const achievements = new Proxy(ACHIEVEMENTS, {
+  get(target, prop) {
+    const unlockedIds = storage.getAchievements();
+    const mapped = target.map(b => ({
+      ...b,
+      description: b.desc,
+      unlocked: unlockedIds.includes(b.id)
+    }));
+    if (typeof mapped[prop] === 'function') {
+      return mapped[prop].bind(mapped);
+    }
+    return mapped[prop];
+  }
+});
+
 export function checkAchievements() {
   const stats = storage.getStats();
   const history = storage.getHistory();
@@ -61,79 +81,34 @@ export function checkAchievements() {
   const newlyUnlocked = [];
 
   ACHIEVEMENTS.forEach(badge => {
-    
     if (unlocked.includes(badge.id)) return;
-
     let qualifies = false;
 
-    if (badge.category === 'wins') {
-      if (stats.wins >= badge.target) qualifies = true;
-    }
-
-    if (badge.category === 'streak') {
-      if (stats.longestStreak >= badge.target) qualifies = true;
-    }
-
-    if (badge.category === 'ai') {
-      const beatAI = history.some(m => m.winnerId === 1 && m.opponent.toLowerCase().includes(badge.target));
-      if (beatAI) qualifies = true;
-    }
-
-    if (badge.category === 'ai_play') {
-      const aiGames = history.filter(m => m.opponent.toLowerCase().includes('ai')).length;
-      if (aiGames >= badge.target) qualifies = true;
-    }
+    if (badge.category === 'wins' && stats.wins >= badge.target) qualifies = true;
+    if (badge.category === 'streak' && stats.longestStreak >= badge.target) qualifies = true;
+    if (badge.category === 'ai' && history.some(m => m.winnerId === 1 && m.opponent.toLowerCase().includes(badge.target))) qualifies = true;
+    if (badge.category === 'ai_play' && history.filter(m => m.opponent.toLowerCase().includes('ai')).length >= badge.target) qualifies = true;
 
     if (badge.category === 'special' || badge.category === 'ai_special') {
-      if (badge.id === 'moves_10') {
-        const hasBlitz = history.some(m => m.winnerId === 1 && m.moves <= 10);
-        if (hasBlitz) qualifies = true;
-      }
-      if (badge.id === 'moves_8') {
-        const hasFlash = history.some(m => m.winnerId === 1 && m.moves <= 8);
-        if (hasFlash) qualifies = true;
-      }
-      if (badge.id === 'moves_6') {
-        const hasQuantum = history.some(m => m.winnerId === 1 && m.moves <= 6);
-        if (hasQuantum) qualifies = true;
-      }
-      if (badge.id === 'long_match') {
-        const hasEndure = history.some(m => m.winnerId === 1 && m.moves >= 35);
-        if (hasEndure) qualifies = true;
-      }
-      if (badge.id === 'tie_first') {
-        if (stats.draws >= 1) qualifies = true;
-      }
-      if (badge.id === 'tie_10') {
-        if (stats.draws >= 10) qualifies = true;
-      }
-      if (badge.id === 'ai_impossible_fast') {
-        const beatFast = history.some(m => m.winnerId === 1 && m.opponent.includes('impossible') && m.moves <= 15);
-        if (beatFast) qualifies = true;
-      }
-
+      if (badge.id === 'moves_10' && history.some(m => m.winnerId === 1 && m.moves <= 10)) qualifies = true;
+      if (badge.id === 'moves_8' && history.some(m => m.winnerId === 1 && m.moves <= 8)) qualifies = true;
+      if (badge.id === 'moves_6' && history.some(m => m.winnerId === 1 && m.moves <= 6)) qualifies = true;
+      if (badge.id === 'long_match' && history.some(m => m.winnerId === 1 && m.moves >= 35)) qualifies = true;
+      if (badge.id === 'tie_first' && stats.draws >= 1) qualifies = true;
+      if (badge.id === 'tie_10' && stats.draws >= 10) qualifies = true;
+      if (badge.id === 'ai_impossible_fast' && history.some(m => m.winnerId === 1 && m.opponent.includes('impossible') && m.moves <= 15)) qualifies = true;
     }
 
-    if (badge.category === 'daily') {
-      if (stats.dailyStreak.streakCount >= badge.target) qualifies = true;
-    }
+    if (badge.category === 'daily' && (stats.dailyStreak?.streakCount || 0) >= badge.target) qualifies = true;
+    if (badge.category === 'level' && profile.level >= badge.target) qualifies = true;
 
-    if (badge.category === 'level') {
-      if (profile.level >= badge.target) qualifies = true;
-    }
-
-    if (qualifies) {
-      newlyUnlocked.push(badge);
-    }
+    if (qualifies) newlyUnlocked.push(badge);
   });
 
   if (newlyUnlocked.length > 0) {
     const updatedUnlocked = [...unlocked, ...newlyUnlocked.map(b => b.id)];
     storage.saveAchievements(updatedUnlocked);
-
-    newlyUnlocked.forEach(b => {
-      addXp(b.xp);
-    });
+    newlyUnlocked.forEach(b => storage.addXP(b.xp));
   }
 
   return newlyUnlocked;
@@ -147,7 +122,7 @@ export function unlockAchievement(achievementId) {
   if (badge) {
     unlocked.push(achievementId);
     storage.saveAchievements(unlocked);
-    addXp(badge.xp);
+    storage.addXP(badge.xp);
     return badge;
   }
   return null;

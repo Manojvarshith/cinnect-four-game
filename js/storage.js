@@ -1,10 +1,10 @@
-
-
 const DEFAULT_PREFERENCES = {
   theme: 'system', 
   sound: 'on',     
+  soundMuted: false,
   volume: 0.5,
   speed: 'normal', 
+  animationSpeed: 'normal',
   particles: 'on', 
   boardColor: '#1e293b', 
   p1Color: '#ff3e6c',    
@@ -12,10 +12,13 @@ const DEFAULT_PREFERENCES = {
 };
 
 const DEFAULT_PROFILE = {
+  username: 'Player 1',
   avatar: 'rocket',
   xp: 0,
+  xpNeeded: 1000,
   level: 1,
   rank: 'Bronze Cadet',
+  rankTitle: 'Bronze Cadet',
   badges: []
 };
 
@@ -65,7 +68,8 @@ class StorageManager {
   }
 
   getPreferences() {
-    return this._get(this.keys.prefs, { ...DEFAULT_PREFERENCES });
+    const data = this._get(this.keys.prefs, { ...DEFAULT_PREFERENCES });
+    return { ...DEFAULT_PREFERENCES, ...data };
   }
 
   savePreferences(prefs) {
@@ -73,8 +77,26 @@ class StorageManager {
     this._set(this.keys.prefs, { ...current, ...prefs });
   }
 
+  // Aliases required by script.js
+  getSettings() {
+    return this.getPreferences();
+  }
+
+  saveSettings(prefs) {
+    this.savePreferences(prefs);
+  }
+
   getProfile() {
-    return this._get(this.keys.profile, { ...DEFAULT_PROFILE });
+    const data = this._get(this.keys.profile, { ...DEFAULT_PROFILE });
+    const merged = { ...DEFAULT_PROFILE, ...data };
+    if (merged.username === 'Grandmaster') merged.username = 'Player 1';
+    if (merged.rank === 'Grand Master' || merged.rankTitle === 'Grand Master') {
+      merged.rank = 'Connect Master';
+      merged.rankTitle = 'Connect Master';
+    }
+    if (!merged.rankTitle) merged.rankTitle = merged.rank;
+    if (!merged.xpNeeded) merged.xpNeeded = merged.level * 1000;
+    return merged;
   }
 
   saveProfile(profile) {
@@ -82,8 +104,33 @@ class StorageManager {
     this._set(this.keys.profile, { ...current, ...profile });
   }
 
+  addXP(amount) {
+    const profile = this.getProfile();
+    profile.xp += amount;
+    let xpNeeded = profile.level * 1000;
+    while (profile.xp >= xpNeeded) {
+      profile.xp -= xpNeeded;
+      profile.level += 1;
+      xpNeeded = profile.level * 1000;
+    }
+    profile.xpNeeded = xpNeeded;
+    
+    let rank = 'Bronze Cadet';
+    if (profile.level >= 20) rank = 'Connect Master';
+    else if (profile.level >= 15) rank = 'Diamond General';
+    else if (profile.level >= 10) rank = 'Platinum Major';
+    else if (profile.level >= 6) rank = 'Gold Sergeant';
+    else if (profile.level >= 3) rank = 'Silver Corporal';
+    
+    profile.rank = rank;
+    profile.rankTitle = rank;
+    this.saveProfile(profile);
+    return profile;
+  }
+
   getStats() {
-    return this._get(this.keys.stats, { ...DEFAULT_STATS });
+    const data = this._get(this.keys.stats, { ...DEFAULT_STATS });
+    return { ...DEFAULT_STATS, ...data };
   }
 
   saveStats(stats) {

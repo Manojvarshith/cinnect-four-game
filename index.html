@@ -65,7 +65,6 @@
         <button class="nav-item" data-view="play">
           <i data-lucide="gamepad-2"></i>
           <span>Play Arena</span>
-          <span class="nav-badge pulse">LIVE</span>
         </button>
         
         <div class="nav-section-label">ANALYTICS</div>
@@ -101,7 +100,7 @@
             <span class="online-indicator"></span>
           </div>
           <div class="user-info">
-            <span class="user-name" id="sidebar-username">Grandmaster</span>
+            <span class="user-name" id="sidebar-username">Player 1</span>
             <span class="user-level" id="sidebar-userlevel">Level 1 • Novice</span>
           </div>
         </div>
@@ -147,10 +146,10 @@
       <section id="view-dashboard" class="app-view view-active">
         <div class="view-header">
           <div>
-            <h1 class="view-title">Command Center</h1>
-            <p class="view-subtitle">Welcome back, Grandmaster. Here is your quantum gameplay breakdown.</p>
+            <h1 class="view-title">Dashboard</h1>
+            <p class="view-subtitle">Welcome back, Player 1. Here is your gameplay breakdown.</p>
           </div>
-          <button class="btn-primary" onclick="switchView('play')">
+          <button class="btn-primary" id="quick-match-btn" onclick="switchView('play'); if(window.startQuickMatch) window.startQuickMatch();">
             <i data-lucide="play"></i> Quick Match
           </button>
         </div>
@@ -165,7 +164,7 @@
               </div>
               <div class="hero-details">
                 <div class="hero-top-row">
-                  <h2 class="hero-name" id="dash-username">Grandmaster</h2>
+                  <h2 class="hero-name" id="dash-username">Player 1</h2>
                   <span class="rank-tag gold" id="dash-rank-tag">Novice Contender</span>
                 </div>
                 <div class="xp-bar-container">
@@ -321,7 +320,7 @@
                 <option value="easy">Easy — Random CPU</option>
                 <option value="medium" selected>Medium — Tactical CPU</option>
                 <option value="hard">Hard — Minimax Deep</option>
-                <option value="impossible">Impossible — Alpha-Beta Quantum</option>
+                <option value="impossible">Impossible — Master AI</option>
               </select>
             </div>
 
@@ -428,7 +427,7 @@
       <section id="view-statistics" class="app-view">
         <div class="view-header">
           <div>
-            <h1 class="view-title">Quantum Analytics</h1>
+            <h1 class="view-title">Statistics & Analytics</h1>
             <p class="view-subtitle">Deep dive into your historical Connect Four performance metrics.</p>
           </div>
         </div>
@@ -531,7 +530,7 @@
         <div class="view-header">
           <div>
             <h1 class="view-title">Trophy Room</h1>
-            <p class="view-subtitle">Unlock 40+ unique achievements as you master the quantum grid.</p>
+            <p class="view-subtitle">Unlock unique achievements as you master the grid.</p>
           </div>
           <div class="ach-filter-tabs">
             <button class="ach-tab active" data-filter="all">All</button>
@@ -575,10 +574,10 @@
               </div>
               <div class="profile-main-info">
                 <div class="profile-title-row">
-                  <h2 id="prof-username">Grandmaster</h2>
+                  <h2 id="prof-username">Player 1</h2>
                   <span class="rank-tag gold" id="prof-rank">Novice Contender</span>
                 </div>
-                <p class="profile-bio">Tactical AI strategist mastering the 7x6 quantum grid.</p>
+                <p class="profile-bio">Connect Four strategist mastering the 7x6 grid.</p>
                 <div class="profile-xp-box">
                   <div class="xp-labels">
                     <span id="prof-xp-text">XP Progression to Level 2: 0 / 100</span>
