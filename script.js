@@ -34,50 +34,50 @@ let statsOpeningsChart = null;
 // INITIALIZATION ON DOM LOAD
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.lucide) window.lucide.createIcons();
-  initConfetti();
-
-  // Load saved preferences
-  const settings = storage.getSettings();
-  if (settings.theme === 'light') {
-    document.body.classList.remove('theme-dark');
-    document.body.classList.add('theme-light');
-    const themeSel = document.getElementById('setting-theme-select');
-    if (themeSel) themeSel.value = 'light';
-  }
-  if (settings.soundMuted) {
-    sound.setMute(true);
-    const muteToggle = document.getElementById('setting-sound-toggle');
-    if (muteToggle) muteToggle.checked = false;
-    updateQuickMuteIcon();
-  }
-  if (settings.animationSpeed) {
-    const speedSel = document.getElementById('setting-speed-select');
-    if (speedSel) speedSel.value = settings.animationSpeed;
+  // Immediately display dashboard without blocking
+  try {
+    switchView('dashboard');
+  } catch (err) {
+    console.error('Non-blocking switchView error:', err);
   }
 
-  // Bind navigation sidebar & bottom nav
-  bindNavigation();
-
-  // Bind Game setup & control buttons
-  bindGameControls();
-
-  // Bind History filter & search controls
-  bindHistoryControls();
-
-  // Bind Settings & Modals
-  bindSettingsAndModals();
-
-  // Dismiss splash screen after quantum intro animation
+  // Background initialization of UI components and preferences
   setTimeout(() => {
-    const splash = document.getElementById('screen-splash');
-    const appShell = document.getElementById('app-shell');
-    if (splash) splash.classList.add('hidden');
-    if (appShell) {
-      appShell.classList.remove('hidden');
+    try {
+      if (window.lucide) window.lucide.createIcons();
+      initConfetti();
+
+      // Load saved preferences
+      const settings = storage.getSettings();
+      if (settings.theme === 'light') {
+        document.body.classList.remove('theme-dark');
+        document.body.classList.add('theme-light');
+        const themeSel = document.getElementById('setting-theme-select');
+        if (themeSel) themeSel.value = 'light';
+      }
+      if (settings.soundMuted) {
+        sound.setMute(true);
+        const muteToggle = document.getElementById('setting-sound-toggle');
+        if (muteToggle) muteToggle.checked = false;
+        updateQuickMuteIcon();
+      }
+      if (settings.animationSpeed) {
+        const speedSel = document.getElementById('setting-speed-select');
+        if (speedSel) speedSel.value = settings.animationSpeed;
+      }
+
+      // Bind all interactive listeners
+      bindNavigation();
+      bindGameControls();
+      bindHistoryControls();
+      bindSettingsAndModals();
+      
+      // Refresh active view after bindings
       switchView('dashboard');
+    } catch (err) {
+      console.error('Non-blocking background initialization error:', err);
     }
-  }, 1600);
+  }, 10);
 });
 
 // ============================================================================
