@@ -1,11 +1,11 @@
-// js/sound.js
+
 
 class SoundManager {
   constructor() {
     this.audioCtx = null;
     this.masterGain = null;
     this.isMuted = false;
-    this.volume = 0.5; // default 50%
+    this.volume = 0.5; 
   }
 
   init() {
@@ -38,7 +38,6 @@ class SoundManager {
     this.init();
     if (!this.audioCtx || this.isMuted) return;
 
-    // Resume AudioContext if suspended (browser security autoplay policies)
     if (this.audioCtx.state === 'suspended') {
       this.audioCtx.resume();
     }
@@ -64,22 +63,22 @@ class SoundManager {
   }
 
   playDrop() {
-    // Slumping pitch for physical drop plop
+    
     this.playOsc('sine', 150, 60, 0.25, 0.5);
   }
 
   playHover() {
-    // Very quiet tick
+    
     this.playOsc('sine', 600, 600, 0.04, 0.05);
   }
 
   playClick() {
-    // Fast snappy click
+    
     this.playOsc('triangle', 300, 500, 0.08, 0.15);
   }
 
   playThemeToggle() {
-    // Sweeping ascending sound
+    
     this.playOsc('sine', 200, 450, 0.3, 0.25);
   }
 
@@ -88,7 +87,6 @@ class SoundManager {
     if (!this.audioCtx || this.isMuted) return;
     if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
 
-    // Uplifting fast arpeggio
     const notes = [330, 440, 554, 660, 880];
     const t = this.audioCtx.currentTime;
     notes.forEach((freq, index) => {
@@ -112,7 +110,6 @@ class SoundManager {
     if (!this.audioCtx || this.isMuted) return;
     if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
 
-    // High energy fanfare chord arpeggio
     const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
     const t = this.audioCtx.currentTime;
     notes.forEach((freq, index) => {
@@ -136,9 +133,8 @@ class SoundManager {
     if (!this.audioCtx || this.isMuted) return;
     if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
 
-    // Depressing descending slide
     const t = this.audioCtx.currentTime;
-    const notes = [220, 207.65, 196, 174.61]; // A3, Ab3, G3, F3
+    const notes = [220, 207.65, 196, 174.61]; 
     notes.forEach((freq, index) => {
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
@@ -156,7 +152,7 @@ class SoundManager {
   }
 
   playDraw() {
-    // Alternating neutral tone
+    
     this.playOsc('triangle', 293.66, 293.66, 0.2, 0.15);
     setTimeout(() => {
       this.playOsc('triangle', 220, 220, 0.3, 0.15);

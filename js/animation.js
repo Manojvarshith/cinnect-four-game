@@ -1,4 +1,4 @@
-// js/animation.js
+
 
 class AnimationEngine {
   constructor() {
@@ -15,7 +15,6 @@ class AnimationEngine {
     this.bgAnimationId = null;
   }
 
-  // 1. Setup Canvas elements
   initConfetti(canvas) {
     this.confettiCanvas = canvas;
     this.confettiCtx = canvas.getContext('2d');
@@ -37,17 +36,12 @@ class AnimationEngine {
     canvas.height = window.innerHeight;
   }
 
-  /* ==========================================
-     CUSTOM CANVAS CONFETTI SYSTEM
-     ========================================== */
-
   startConfetti() {
     if (this.isConfettiActive) return;
     this.isConfettiActive = true;
     this.confettiParticles = [];
     this.resizeCanvas(this.confettiCanvas);
 
-    // Create 150 confetti particles
     const colors = ['#ff3e6c', '#00f0ff', '#ffb800', '#3b82f6', '#10b981', '#8b5cf6'];
     for (let i = 0; i < 160; i++) {
       this.confettiParticles.push({
@@ -86,7 +80,6 @@ class AnimationEngine {
       p.x += Math.sin(p.tiltAngle) * 0.5;
       p.tilt = Math.sin(p.tiltAngle - p.r / 2) * 8;
 
-      // Draw particle
       this.confettiCtx.beginPath();
       this.confettiCtx.lineWidth = p.r;
       this.confettiCtx.strokeStyle = p.color;
@@ -94,7 +87,6 @@ class AnimationEngine {
       this.confettiCtx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
       this.confettiCtx.stroke();
 
-      // Recirculate if off bottom
       if (p.y < this.confettiCanvas.height) {
         remaining++;
       } else {
@@ -110,10 +102,6 @@ class AnimationEngine {
       this.confettiAnimationId = requestAnimationFrame(() => this.animateConfetti());
     }
   }
-
-  /* ==========================================
-     BACKGROUND AMBIENT PARTICLES (MAIN MENU)
-     ========================================== */
 
   createBgParticles() {
     this.bgParticles = [];
@@ -147,8 +135,7 @@ class AnimationEngine {
     if (!this.isBgActive || !this.bgCtx) return;
 
     this.bgCtx.clearRect(0, 0, this.bgCanvas.width, this.bgCanvas.height);
-    
-    // Check canvas dark/light state to select particle color
+
     const isLightMode = document.body.classList.contains('light-mode');
     const colorHex = isLightMode ? '0, 0, 0' : '255, 255, 255';
 
@@ -156,7 +143,6 @@ class AnimationEngine {
       p.y -= p.speed;
       p.x += Math.sin(p.angle) * 0.2;
 
-      // Wrap-around
       if (p.y < -10) {
         p.y = this.bgCanvas.height + 10;
         p.x = Math.random() * this.bgCanvas.width;
@@ -171,16 +157,12 @@ class AnimationEngine {
     this.bgAnimationId = requestAnimationFrame(() => this.animateBgParticles());
   }
 
-  /* ==========================================
-     PHYSICAL CAMERA SHAKE
-     ========================================== */
-
   triggerCameraShake(container) {
     if (!container) return;
     container.classList.add('camera-shake');
     setTimeout(() => {
       container.classList.remove('camera-shake');
-    }, 500); // match style.css animation time
+    }, 500); 
   }
 }
 

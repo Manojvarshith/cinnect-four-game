@@ -1,4 +1,4 @@
-// js/board.js
+
 
 export const ROWS = 6;
 export const COLS = 7;
@@ -8,20 +8,17 @@ export class BoardManager {
     this.grid = [];
     this.currentPlayer = 1;
     this.isGameOver = false;
-    
-    // Undo / Redo Stacks
-    this.historyStack = []; // Elements: { col, row, player }
+
+    this.historyStack = []; 
     this.redoStack = [];
 
-    // Match Series Tracker
-    this.seriesMode = 'unlimited'; // 'bo3', 'bo bo5', 'bo7', 'unlimited'
+    this.seriesMode = 'unlimited'; 
     this.seriesScores = { p1: 0, p2: 0, ties: 0 };
-    this.seriesWinner = null; // 1, 2, or null
-    
-    // Playback Replay Log
-    this.replayMoves = []; // Log of columns selected: [3, 4, 3, 2, ...]
+    this.seriesWinner = null; 
+
+    this.replayMoves = []; 
     this.undoCountThisMatch = 0;
-    this.opponentLosesCount = 0; // tracking if opponent had potential wins blocked
+    this.opponentLosesCount = 0; 
   }
 
   init() {
@@ -58,14 +55,14 @@ export class BoardManager {
     if (this.isGameOver) return null;
 
     const row = this.getLowestEmptyRow(col);
-    if (row === -1) return null; // Column is full
+    if (row === -1) return null; 
 
     this.grid[row][col] = this.currentPlayer;
     
     const move = { col, row, player: this.currentPlayer };
     this.historyStack.push(move);
     this.replayMoves.push(col);
-    this.redoStack = []; // clear redo stack on new move
+    this.redoStack = []; 
 
     return move;
   }
@@ -78,7 +75,6 @@ export class BoardManager {
     this.redoStack.push(lastMove);
     this.undoCountThisMatch++;
 
-    // Switch player turn back
     this.currentPlayer = lastMove.player;
 
     return lastMove;
@@ -90,19 +86,17 @@ export class BoardManager {
     const nextMove = this.redoStack.pop();
     this.grid[nextMove.row][nextMove.col] = nextMove.player;
     this.historyStack.push(nextMove);
-    
-    // Switch player turn forward
+
     this.currentPlayer = nextMove.player === 1 ? 2 : 1;
 
     return nextMove;
   }
 
-  // Returns target wins needed to complete a series
   getSeriesTargetWins() {
     if (this.seriesMode === 'bo3') return 2;
     if (this.seriesMode === 'bo5') return 3;
     if (this.seriesMode === 'bo7') return 4;
-    return Infinity; // Unlimited mode
+    return Infinity; 
   }
 
   recordRoundOutcome(winner) {
@@ -129,7 +123,7 @@ export class BoardManager {
   }
 
   checkWin() {
-    // Horizontal Check
+    
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         const val = this.grid[r][c];
@@ -139,7 +133,6 @@ export class BoardManager {
       }
     }
 
-    // Vertical Check
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS; c++) {
         const val = this.grid[r][c];
@@ -149,7 +142,6 @@ export class BoardManager {
       }
     }
 
-    // Diagonal (\) Check
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         const val = this.grid[r][c];
@@ -159,7 +151,6 @@ export class BoardManager {
       }
     }
 
-    // Diagonal (/) Check
     for (let r = 3; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         const val = this.grid[r][c];

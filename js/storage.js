@@ -1,14 +1,14 @@
-// js/storage.js
+
 
 const DEFAULT_PREFERENCES = {
-  theme: 'system', // 'light', 'dark', 'system'
-  sound: 'on',     // 'on', 'off'
+  theme: 'system', 
+  sound: 'on',     
   volume: 0.5,
-  speed: 'normal', // 'slow', 'normal', 'fast'
-  particles: 'on', // 'on', 'off'
-  boardColor: '#1e293b', // default slate-800
-  p1Color: '#ff3e6c',    // default neon-red
-  p2Color: '#00f0ff'     // default neon-cyan
+  speed: 'normal', 
+  particles: 'on', 
+  boardColor: '#1e293b', 
+  p1Color: '#ff3e6c',    
+  p2Color: '#00f0ff'     
 };
 
 const DEFAULT_PROFILE = {
@@ -26,9 +26,9 @@ const DEFAULT_STATS = {
   draws: 0,
   currentStreak: 0,
   longestStreak: 0,
-  totalMatchTime: 0, // in seconds
-  fastestWin: null,  // in seconds
-  openingCols: [0, 0, 0, 0, 0, 0, 0], // occurrences of col 0-6
+  totalMatchTime: 0, 
+  fastestWin: null,  
+  openingCols: [0, 0, 0, 0, 0, 0, 0], 
   dailyStreak: {
     lastPlayedDate: null,
     streakCount: 0
@@ -46,7 +46,6 @@ class StorageManager {
     };
   }
 
-  // Generic read
   _get(key, defaultValue) {
     try {
       const data = localStorage.getItem(key);
@@ -57,7 +56,6 @@ class StorageManager {
     }
   }
 
-  // Generic write
   _set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -115,8 +113,7 @@ class StorageManager {
     localStorage.removeItem(this.keys.stats);
     localStorage.removeItem(this.keys.history);
     localStorage.removeItem(this.keys.achievements);
-    
-    // Trigger window reload to refresh views
+
     window.location.reload();
   }
 }

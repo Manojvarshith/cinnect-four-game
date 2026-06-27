@@ -3,29 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connect Four Pro | Elite Arcade Experience</title>
-  
-  <!-- SEO Meta Tags -->
-  <meta name="description" content="Play Connect Four Pro with local multiplayer, progressive Minimax AI challenges, rich stats tracking, XP levels, 40+ achievements, and custom retro sound synthesizers.">
-  <meta name="keywords" content="Connect Four, Minimax AI, CSS animations, Web Audio API, local storage game, glassmorphism UI, retro arcade">
+  <title>Connect Four Pro | Desktop Dashboard Strategy Game</title>
 
-  <!-- Google Fonts -->
+  <meta name="description" content="Play Connect Four Pro with local multiplayer, progressive Minimax AI challenges, rich stats tracking, XP levels, 40+ achievements, and custom retro sound synthesizers.">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-  
-  <!-- Lucide Icons -->
+
   <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <!-- Stylesheet -->
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Ambient & Confetti Canvases -->
+  
   <canvas id="bg-particle-canvas" class="fullscreen-canvas"></canvas>
   <canvas id="confetti-canvas" class="fullscreen-canvas"></canvas>
 
-  <!-- Achievement Unlock Notification Card (Toast) -->
   <div id="achievement-toast" class="toast-card" role="alert" aria-live="assertive">
     <div class="toast-glow"></div>
     <div class="toast-body">
@@ -38,8 +32,7 @@
     </div>
   </div>
 
-  <!-- SPLASH SCREEN / INTRO VIEW -->
-  <section id="screen-splash" class="app-screen screen-active">
+  <section id="screen-splash" class="app-screen screen-active" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; background: var(--bg-gradient); background-color: var(--bg-color); justify-content: center; align-items: center;">
     <div class="splash-content">
       <div class="splash-logo-glow"></div>
       <div class="splash-logo">
@@ -49,484 +42,652 @@
       <div class="loader-track">
         <div class="loader-fill"></div>
       </div>
-      <span class="loader-text font-display">INITIALIZING QUANTUM CHIPS...</span>
+      <span class="loader-text font-display">INITIALIZING TACTICAL QUANTUM MATRIX...</span>
     </div>
   </section>
 
-  <!-- MAIN MENU VIEW -->
-  <section id="screen-menu" class="app-screen">
-    <div class="menu-container">
-      <header class="menu-header">
-        <div class="menu-title-block">
-          <h1 class="menu-main-title font-display">
-            <i data-lucide="circle-dot" class="logo-icon-glow"></i>
-            CONNECT FOUR <span class="logo-accent">PRO</span>
-          </h1>
-          <p class="menu-subtitle">THE ELITE CLASSICAL STRATEGY PLAYGROUND</p>
-        </div>
-      </header>
+  <div class="app-layout">
 
-      <!-- Profile Summary Panel -->
-      <div class="menu-profile-card glass-panel" id="menu-profile">
-        <div class="avatar-ring" id="menu-avatar-display">
-          <i data-lucide="rocket"></i>
-        </div>
-        <div class="profile-details">
-          <div class="profile-meta-top">
-            <span class="profile-username" id="menu-profile-name">GUEST CHALLENGER</span>
-            <span class="profile-rank" id="menu-profile-rank">Bronze Cadet</span>
-          </div>
-          <div class="xp-level-row">
-            <span class="profile-level font-display">LVL <span id="menu-profile-lvl">1</span></span>
-            <div class="xp-progress-bar">
-              <div class="xp-progress-fill" id="menu-profile-xp-fill" style="width: 0%"></div>
-            </div>
-            <span class="profile-xp-value font-display"><span id="menu-profile-xp-curr">0</span>/<span id="menu-profile-xp-max">1000</span> XP</span>
-          </div>
-        </div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <i data-lucide="circle-dot"></i>
+        <span>C4 <span class="logo-accent">PRO</span></span>
       </div>
-
-      <!-- Action Navigation Buttons -->
-      <nav class="menu-options" aria-label="Main Menu Navigation">
-        <button id="btn-menu-vs-ai" class="menu-btn primary-menu-btn">
-          <i data-lucide="cpu"></i>
-          <span>PLAY VS COMPUTER AI</span>
+      
+      <nav class="sidebar-nav" aria-label="Main Navigation">
+        <button class="nav-item active" data-target="dashboard">
+          <i data-lucide="home"></i>
+          <span>Dashboard</span>
         </button>
         
-        <button id="btn-menu-vs-friend" class="menu-btn primary-menu-btn">
-          <i data-lucide="users"></i>
-          <span>PLAY VS LOCAL FRIEND</span>
+        <button class="nav-item" data-target="play">
+          <i data-lucide="gamepad-2"></i>
+          <span>Play Game</span>
         </button>
-
-        <button id="btn-menu-ai-demo" class="menu-btn secondary-menu-btn">
-          <i data-lucide="terminal"></i>
-          <span>AI VS AI DEMO MODE</span>
+        
+        <button class="nav-item" data-target="stats">
+          <i data-lucide="bar-chart-3"></i>
+          <span>Statistics</span>
         </button>
-
-        <div class="menu-grid-buttons">
-          <button id="btn-menu-stats" class="menu-btn grid-menu-btn">
-            <i data-lucide="bar-chart-3"></i>
-            <span>STATISTICS</span>
-          </button>
-          
-          <button id="btn-menu-achievements" class="menu-btn grid-menu-btn">
-            <i data-lucide="award"></i>
-            <span>ACHIEVEMENTS</span>
-          </button>
-          
-          <button id="btn-menu-leaderboard" class="menu-btn grid-menu-btn">
-            <i data-lucide="crown"></i>
-            <span>LEADERBOARD</span>
-          </button>
-          
-          <button id="btn-menu-settings" class="menu-btn grid-menu-btn">
-            <i data-lucide="sliders"></i>
-            <span>SETTINGS</span>
-          </button>
-        </div>
-
-        <button id="btn-menu-exit" class="menu-btn danger-menu-btn">
-          <i data-lucide="log-out"></i>
-          <span>EXIT GAME</span>
+        
+        <button class="nav-item" data-target="achievements">
+          <i data-lucide="award"></i>
+          <span>Achievements</span>
+        </button>
+        
+        <button class="nav-item" data-target="history">
+          <i data-lucide="history"></i>
+          <span>Match History</span>
+        </button>
+        
+        <button class="nav-item" data-target="profile">
+          <i data-lucide="user"></i>
+          <span>Profile</span>
+        </button>
+        
+        <button class="nav-item" data-target="settings">
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
         </button>
       </nav>
-    </div>
-  </section>
 
-  <!-- SETTINGS VIEW -->
-  <section id="screen-settings" class="app-screen">
-    <div class="settings-container glass-panel scroll-panel">
-      <header class="panel-header">
-        <button id="btn-settings-back" class="circle-back-btn" aria-label="Go Back to Main Menu">
-          <i data-lucide="arrow-left"></i>
-        </button>
-        <h2 class="panel-title font-display">SYSTEM CONFIGURATION</h2>
-      </header>
-
-      <div class="settings-form">
-        <!-- Theme Setting -->
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Visual Theme</span>
-            <span class="setting-desc">Configure color theme profiles</span>
+      <div class="sidebar-footer">
+        <div class="profile-quick" id="sidebar-profile-link">
+          <div class="profile-quick-avatar">
+            <i data-lucide="rocket"></i>
           </div>
-          <select id="setting-theme" class="setting-control select-control">
-            <option value="system">Follow System Preference</option>
-            <option value="dark">Dark Neon Mode</option>
-            <option value="light">Light Minimal Mode</option>
-          </select>
-        </div>
-
-        <!-- Volume Slider Setting -->
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Sound Synthesis</span>
-            <span class="setting-desc">Toggle programmatic sound effects</span>
-          </div>
-          <div class="volume-slider-group">
-            <button id="btn-sound-mute-toggle" class="sound-mute-btn" aria-label="Mute sound effects">
-              <i data-lucide="volume-2" id="mute-icon"></i>
-            </button>
-            <input type="range" id="setting-volume" min="0" max="1" step="0.1" value="0.5" class="slider-control" aria-label="Sound volume level">
-          </div>
-        </div>
-
-        <!-- Animation Speed Setting -->
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Animation Velocity</span>
-            <span class="setting-desc">Adjust disc dropping and UI velocities</span>
-          </div>
-          <select id="setting-speed" class="setting-control select-control">
-            <option value="slow">Slow Motion</option>
-            <option value="normal" selected>Normal</option>
-            <option value="fast">High Velocity (Fast)</option>
-          </select>
-        </div>
-
-        <!-- Particles Toggle Setting -->
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Background Particles</span>
-            <span class="setting-desc">Ambient floating particles on main menu</span>
-          </div>
-          <div class="checkbox-wrapper">
-            <input type="checkbox" id="setting-particles" checked class="checkbox-control">
-          </div>
-        </div>
-
-        <!-- Board Color Selection Setting -->
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Board Core Color</span>
-            <span class="setting-desc">Select connect four grid casing color</span>
-          </div>
-          <div class="color-palette-selector">
-            <button class="color-swatch-btn active-swatch" data-color="#1e293b" style="background-color: #1e293b;" aria-label="Slate Blue Board"></button>
-            <button class="color-swatch-btn" data-color="#0284c7" style="background-color: #0284c7;" aria-label="Sky Blue Board"></button>
-            <button class="color-swatch-btn" data-color="#059669" style="background-color: #059669;" aria-label="Emerald Green Board"></button>
-            <button class="color-swatch-btn" data-color="#4f46e5" style="background-color: #4f46e5;" aria-label="Indigo Violet Board"></button>
-            <button class="color-swatch-btn" data-color="#b91c1c" style="background-color: #b91c1c;" aria-label="Ruby Red Board"></button>
-          </div>
-        </div>
-
-        <!-- Reset Settings Groups -->
-        <div class="settings-danger-zone">
-          <h3 class="danger-zone-title font-display">DANGER ZONE</h3>
-          <div class="danger-buttons-row">
-            <button id="btn-reset-stats" class="danger-btn">
-              <i data-lucide="rotate-ccw"></i>
-              <span>RESET STATS</span>
-            </button>
-            <button id="btn-reset-achievements" class="danger-btn">
-              <i data-lucide="award"></i>
-              <span>RESET ACHIEVEMENTS</span>
-            </button>
-            <button id="btn-reset-all" class="danger-btn-heavy">
-              <i data-lucide="trash-2"></i>
-              <span>RESET EVERYTHING</span>
-            </button>
+          <div class="profile-quick-info">
+            <span class="pq-username" id="pq-username-display">LEVEL 1</span>
+            <span class="pq-xp" id="pq-xp-display">0/1000 XP</span>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </aside>
 
-  <!-- STATISTICS & HISTORY VIEW -->
-  <section id="screen-stats" class="app-screen">
-    <div class="stats-container glass-panel scroll-panel">
-      <header class="panel-header">
-        <button id="btn-stats-back" class="circle-back-btn" aria-label="Go Back to Main Menu">
-          <i data-lucide="arrow-left"></i>
-        </button>
-        <h2 class="panel-title font-display">STATISTICS & HISTORY</h2>
-      </header>
+    <div class="main-wrapper">
 
-      <div class="stats-layout">
-        <!-- Stats summary metrics grid -->
-        <div class="stats-grid">
-          <div class="stats-card-pro">
-            <span class="card-label">GAMES PLAYED</span>
-            <span class="card-val font-display" id="stat-games-played">0</span>
-          </div>
-          <div class="stats-card-pro">
-            <span class="card-label">WIN RATE</span>
-            <span class="card-val font-display" id="stat-win-rate">0%</span>
-          </div>
-          <div class="stats-card-pro">
-            <span class="card-label">TOTAL WINS</span>
-            <span class="card-val font-display" id="stat-wins" style="color: var(--player-1);">0</span>
-          </div>
-          <div class="stats-card-pro">
-            <span class="card-label">TOTAL LOSSES</span>
-            <span class="card-val font-display" id="stat-losses" style="color: var(--player-2);">0</span>
-          </div>
-          <div class="stats-card-pro">
-            <span class="card-label">TOTAL DRAWS</span>
-            <span class="card-val font-display" id="stat-draws" style="color: var(--tie-color);">0</span>
-          </div>
-          <div class="stats-card-pro">
-            <span class="card-label">LONGEST STREAK</span>
-            <span class="card-val font-display" id="stat-longest-streak">0</span>
-          </div>
-          <div class="stats-card-pro">
-            <span class="card-label">FASTEST WIN</span>
-            <span class="card-val font-display" id="stat-fastest-win">N/A</span>
-          </div>
-          <div class="stats-card-pro">
-            <span class="card-label">AVG MATCH TIME</span>
-            <span class="card-val font-display" id="stat-avg-time">0s</span>
-          </div>
+      <header class="top-nav">
+        <div class="top-nav-left">
+          <h2 id="view-title" class="view-title font-display">DASHBOARD</h2>
         </div>
-
-        <!-- Opening Column Popularity charts -->
-        <div class="opening-cols-chart glass-panel">
-          <h3 class="chart-title font-display">FAVORITE OPENING COLUMNS</h3>
-          <div class="opening-chart-bars" id="opening-columns-chart-container">
-            <!-- Rendered in script.js -->
-          </div>
-        </div>
-
-        <!-- Match History Panel -->
-        <div class="history-list-wrapper glass-panel">
-          <div class="history-header">
-            <h3 class="chart-title font-display">RECENT MATCH HISTORY (LAST 50)</h3>
-            <button id="btn-export-stats" class="action-btn secondary-btn small-btn">
-              <i data-lucide="download"></i>
-              <span>EXPORT ALL</span>
-            </button>
-          </div>
-          <div class="history-table-container">
-            <table class="history-table">
-              <thead>
-                <tr>
-                  <th>DATE</th>
-                  <th>OPPONENT</th>
-                  <th>DIFFICULTY</th>
-                  <th>MOVES</th>
-                  <th>DURATION</th>
-                  <th>WINNER</th>
-                  <th>ACTION</th>
-                </tr>
-              </thead>
-              <tbody id="history-table-body">
-                <!-- Rendered dynamically -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACHIEVEMENTS VIEW -->
-  <section id="screen-achievements" class="app-screen">
-    <div class="achievements-container glass-panel scroll-panel">
-      <header class="panel-header">
-        <button id="btn-achievements-back" class="circle-back-btn" aria-label="Go Back to Main Menu">
-          <i data-lucide="arrow-left"></i>
-        </button>
-        <div class="achievements-header-title">
-          <h2 class="panel-title font-display">ACHIEVEMENTS</h2>
-          <span class="achievements-unlocked-ratio" id="achievements-count-ratio">0/42 UNLOCKED</span>
+        <div class="top-nav-right">
+          <button id="quick-mute-btn" class="quick-action" aria-label="Toggle mute state">
+            <i data-lucide="volume-2" id="quick-mute-icon"></i>
+          </button>
+          <button id="quick-theme-btn" class="quick-action" aria-label="Toggle theme mode">
+            <i data-lucide="sun" id="quick-theme-icon"></i>
+          </button>
+          <div class="divider"></div>
+          <div class="profile-level-badge font-display">LEVEL <span id="top-nav-lvl-badge">1</span></div>
         </div>
       </header>
 
-      <!-- Achievement Grid of Cards -->
-      <div class="achievements-grid" id="achievements-list-container">
-        <!-- Rendered in achievements.js -->
-      </div>
-    </div>
-  </section>
+      <main class="content-area scroll-panel">
 
-  <!-- LEADERBOARD VIEW -->
-  <section id="screen-leaderboard" class="app-screen">
-    <div class="leaderboard-container glass-panel scroll-panel">
-      <header class="panel-header">
-        <button id="btn-leaderboard-back" class="circle-back-btn" aria-label="Go Back to Main Menu">
-          <i data-lucide="arrow-left"></i>
-        </button>
-        <h2 class="panel-title font-display">LOCAL HALL OF FAME</h2>
-      </header>
+        <div id="view-dashboard" class="dashboard-grid-layout" style="display: flex;">
 
-      <div class="leaderboard-layout">
-        <table class="leaderboard-table">
-          <thead>
-            <tr>
-              <th>RANK</th>
-              <th>CHALLENGER</th>
-              <th>PLAYER LEVEL</th>
-              <th>TOTAL XP</th>
-              <th>WINS RECORDED</th>
-              <th>LONGEST STREAK</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-table-body">
-            <!-- Populated via script.js -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+          <div class="dash-row-1 stagger-in">
+            
+            <div class="glass-panel dash-profile-card">
+              <div class="dash-avatar-large">
+                <i data-lucide="rocket" id="dash-profile-avatar-icon"></i>
+              </div>
+              <div class="dash-profile-details">
+                <div class="dash-meta-top">
+                  <span class="dash-username" id="dash-profile-lvl-text">LEVEL 1</span>
+                  <span class="dash-rank" id="dash-profile-rank-text">BRONZE CADET</span>
+                </div>
+                <div class="dash-xp-row">
+                  <span class="dash-level font-display">LVL <span id="dash-profile-lvl-num">1</span></span>
+                  <div class="dash-xp-progress">
+                    <div class="dash-xp-fill" id="dash-profile-xp-fill-bar" style="width: 0%"></div>
+                  </div>
+                  <span class="dash-xp-text font-display"><span id="dash-profile-xp-curr">0</span>/<span id="dash-profile-xp-max">1000</span> XP</span>
+                </div>
+              </div>
+            </div>
 
-  <!-- ACTIVE GAME SCREEN VIEW -->
-  <section id="screen-game" class="app-screen">
-    <div class="game-view-container">
-      
-      <!-- Top controls bar -->
-      <header class="game-control-header">
-        <button id="btn-game-back-to-menu" class="action-btn secondary-btn" aria-label="Back to main menu">
-          <i data-lucide="home"></i>
-          <span class="btn-text-responsive">MENU</span>
-        </button>
-
-        <div class="series-badge font-display" id="series-target-banner">
-          BEST OF 5 SERIES
-        </div>
-
-        <div class="turn-indicator-card" id="game-turn-card">
-          <span class="indicator-label">CURRENT TURN</span>
-          <div class="current-player-display">
-            <div class="token-preview player-1-color glow-red" id="game-turn-token"></div>
-            <span class="player-name" id="game-turn-name">Player 1</span>
+            <div class="glass-panel dash-winrate-card">
+              <div class="winrate-info">
+                <span class="winrate-label">WIN RATE</span>
+                <span class="winrate-number font-display" id="dash-win-rate-display">0%</span>
+                <span class="winrate-subtext" id="dash-longest-streak-display">Longest Streak: 0 Wins</span>
+              </div>
+              <div class="winrate-radial">
+                <i data-lucide="percent" class="winner-icon" style="color: var(--player-2); filter: drop-shadow(0 0 8px var(--player-2-glow));"></i>
+              </div>
+            </div>
           </div>
-          <!-- AI Thinking Sub-Panel -->
-          <div class="ai-thinking-indicator" id="game-ai-thinking-box">
-            <span id="ai-thinking-text">AI is thinking...</span>
-            <div class="ai-dots-anim">
-              <span class="dot">•</span>
-              <span class="dot">•</span>
-              <span class="dot">•</span>
+
+          <div class="dash-row-2 stagger-in">
+            <div class="glass-panel metric-mini-card">
+              <div class="metric-inner">
+                <span class="metric-lbl">GAMES PLAYED</span>
+                <span class="metric-val font-display" id="dash-games-played">0</span>
+              </div>
+              <div class="metric-icon-box"><i data-lucide="activity"></i></div>
+            </div>
+            
+            <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--player-1);">
+              <div class="metric-inner">
+                <span class="metric-lbl">TOTAL WINS</span>
+                <span class="metric-val font-display" id="dash-wins" style="color: var(--player-1); text-shadow: 0 0 6px var(--player-1-glow);">0</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--player-1); border-color: rgba(255, 62, 108, 0.2);"><i data-lucide="trophy"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--player-2);">
+              <div class="metric-inner">
+                <span class="metric-lbl">TOTAL LOSSES</span>
+                <span class="metric-val font-display" id="dash-losses" style="color: var(--player-2); text-shadow: 0 0 6px var(--player-2-glow);">0</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--player-2); border-color: rgba(0, 240, 255, 0.2);"><i data-lucide="award"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--tie-color);">
+              <div class="metric-inner">
+                <span class="metric-lbl">TOTAL DRAWS</span>
+                <span class="metric-val font-display" id="dash-draws" style="color: var(--tie-color); text-shadow: 0 0 6px var(--tie-glow);">0</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--tie-color); border-color: rgba(255, 184, 0, 0.2);"><i data-lucide="help-circle"></i></div>
+            </div>
+          </div>
+
+          <div class="dash-row-3 stagger-in">
+            
+            <div class="glass-panel graphical-win-trend">
+              <span class="win-trend-title font-display">PERFORMANCE CHART (WINS TREND)</span>
+              <div class="trend-chart-area" id="dash-win-trend-container">
+                
+              </div>
+            </div>
+
+            <div class="glass-panel graphical-win-trend">
+              <span class="win-trend-title font-display">FAVORITE OPENING COLUMNS</span>
+              <div class="opening-chart-bars" id="dash-opening-columns-chart-container">
+                
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-row-4 stagger-in">
+            
+            <div class="glass-panel dash-recent-matches">
+              <span class="win-trend-title font-display">RECENT MATCHES</span>
+              <div class="dash-recent-matches" id="dash-recent-matches-container">
+                
+              </div>
+            </div>
+
+            <div class="glass-panel dash-recent-achievements">
+              <span class="win-trend-title font-display">RECENT UNLOCKED ACHIEVEMENTS</span>
+              <div class="dash-recent-achievements" id="dash-recent-achievements-container">
+                
+              </div>
             </div>
           </div>
         </div>
-      </header>
 
-      <!-- Interactive scoreboard header -->
-      <section class="game-score-banner stats-bar">
-        <div class="stat-card player-1-stat">
-          <div class="player-info">
-            <div class="token-preview player-1-color"></div>
-            <span class="player-label">PLAYER 1</span>
-          </div>
-          <span class="stat-value" id="game-p1-score">0</span>
-        </div>
+        <div id="view-play" class="play-view-layout" style="display: none;">
 
-        <div class="stat-card ties-stat">
-          <span class="player-label">DRAWS</span>
-          <span class="stat-value" id="game-tie-score">0</span>
-        </div>
+          <div class="glass-panel" id="game-setup-panel" style="grid-column: 1 / -1; max-width: 500px; margin: 40px auto; width: 100%;">
+            <div class="modal-header-glow" style="background: linear-gradient(90deg, var(--player-1), var(--player-2)); margin-bottom: 20px;"></div>
+            <h2 class="modal-title font-display">MATCH CONFIGURATION</h2>
+            <p class="modal-description" style="margin-bottom: 20px;">Choose a series type and play mode to begin your Connect Four Pro match.</p>
+            
+            <div class="setup-form">
+              <div class="setup-group">
+                <label for="game-setup-mode-select"><i data-lucide="users"></i> Game Play Mode</label>
+                <select id="game-setup-mode-select" class="custom-select select-control">
+                  <option value="ai">VS Computer AI</option>
+                  <option value="pvp">Local Multiplayer</option>
+                  <option value="demo">AI vs AI Demo Mode</option>
+                </select>
+              </div>
 
-        <div class="stat-card player-2-stat">
-          <div class="player-info">
-            <div class="token-preview player-2-color" id="game-p2-token-preview"></div>
-            <span class="player-label" id="game-p2-label">COMPUTER AI</span>
-          </div>
-          <span class="stat-value" id="game-p2-score">0</span>
-        </div>
-      </section>
+              <div class="setup-group">
+                <label for="game-setup-series-mode"><i data-lucide="medal"></i> Matches Series Type</label>
+                <select id="game-setup-series-mode" class="custom-select select-control">
+                  <option value="unlimited">Unlimited Single Rounds</option>
+                  <option value="bo3">Best of 3 (First to 2 Wins)</option>
+                  <option value="bo5">Best of 5 (First to 3 Wins)</option>
+                  <option value="bo7">Best of 7 (First to 4 Wins)</option>
+                </select>
+              </div>
 
-      <!-- Active Game Match Series progress indicators -->
-      <div class="series-dots-row" id="series-dots-row">
-        <!-- Rendered dynamically -->
-      </div>
+              <div class="setup-group" id="game-setup-difficulty-group">
+                <label for="game-setup-difficulty-select"><i data-lucide="cpu"></i> Computer AI Intellect</label>
+                <select id="game-setup-difficulty-select" class="custom-select select-control">
+                  <option value="easy">Easy (Random Moves)</option>
+                  <option value="medium" selected>Medium (Standard Tactics)</option>
+                  <option value="hard">Hard (Tactical Minimax)</option>
+                  <option value="impossible">Impossible (Alpha-Beta Master)</option>
+                </select>
+              </div>
+            </div>
 
-      <!-- Grid Board and Column Overlays -->
-      <section class="game-container" id="physical-board-container">
-        <!-- Hover Column Highlights -->
-        <div class="board-column-hovers" id="game-column-hovers">
-          <div class="hover-col" data-col="0"></div>
-          <div class="hover-col" data-col="1"></div>
-          <div class="hover-col" data-col="2"></div>
-          <div class="hover-col" data-col="3"></div>
-          <div class="hover-col" data-col="4"></div>
-          <div class="hover-col" data-col="5"></div>
-          <div class="hover-col" data-col="6"></div>
-        </div>
-
-        <!-- The physical connect four grid board -->
-        <div class="board-wrapper">
-          <div class="board-grid" id="game-board-grid">
-            <!-- Populated dynamically via JS -->
-          </div>
-        </div>
-      </section>
-
-      <!-- Game Actions Footer buttons -->
-      <footer class="game-footer-actions">
-        <div class="undo-redo-controls">
-          <button id="btn-game-undo" class="action-btn secondary-btn" aria-label="Undo last move">
-            <i data-lucide="undo"></i>
-            <span>UNDO</span>
-          </button>
-          <button id="btn-game-redo" class="action-btn secondary-btn" aria-label="Redo last undone move">
-            <i data-lucide="redo"></i>
-            <span>REDO</span>
-          </button>
-        </div>
-
-        <button id="btn-game-restart" class="action-btn primary-btn">
-          <i data-lucide="rotate-ccw"></i>
-          <span>RESTART ROUND</span>
-        </button>
-      </footer>
-    </div>
-  </section>
-
-  <!-- MATCH GAME SETUP OVERLAY (Pre-Game) -->
-  <div class="modal-overlay" id="setup-modal">
-    <div class="modal-card">
-      <div class="modal-header-glow" style="background: linear-gradient(90deg, var(--player-1), var(--player-2));"></div>
-      <div class="modal-content">
-        <h2 class="modal-title font-display">MATCH CONFIGURATION</h2>
-        
-        <div class="setup-form">
-          <div class="setup-group">
-            <label for="setup-series-mode"><i data-lucide="medal"></i> Matches Series Type</label>
-            <select id="setup-series-mode" class="custom-select select-control">
-              <option value="unlimited">Unlimited Single Rounds</option>
-              <option value="bo3">Best of 3 (First to 2 Wins)</option>
-              <option value="bo5">Best of 5 (First to 3 Wins)</option>
-              <option value="bo7">Best of 7 (First to 4 Wins)</option>
-            </select>
+            <button id="btn-game-setup-start" class="menu-btn primary-menu-btn" style="width: 100%;">
+              <i data-lucide="play"></i>
+              <span>START MATCH SETUP</span>
+            </button>
           </div>
 
-          <div class="setup-group" id="setup-difficulty-group">
-            <label for="setup-difficulty-select"><i data-lucide="cpu"></i> Computer AI Intellect</label>
-            <select id="setup-difficulty-select" class="custom-select select-control">
-              <option value="easy">Easy (Random Moves)</option>
-              <option value="medium" selected>Medium (Standard Tactics)</option>
-              <option value="hard">Hard (Tactical Minimax)</option>
-              <option value="impossible">Impossible (Alpha-Beta Master)</option>
-            </select>
+          <div class="board-column-panel stagger-in" id="active-game-board-wrapper" style="display: none;">
+            
+            <div class="series-badge font-display" id="game-series-target-banner" style="margin-bottom: 10px;">
+              BEST OF 5 SERIES
+            </div>
+
+            <div class="series-dots-row" id="game-series-dots-row" style="margin-bottom: 10px;">
+              
+            </div>
+
+            <section class="game-container" id="physical-board-container" style="width: 100%; max-width: 580px;">
+              
+              <div class="board-column-hovers" id="game-column-hovers">
+                <div class="hover-col" data-col="0"></div>
+                <div class="hover-col" data-col="1"></div>
+                <div class="hover-col" data-col="2"></div>
+                <div class="hover-col" data-col="3"></div>
+                <div class="hover-col" data-col="4"></div>
+                <div class="hover-col" data-col="5"></div>
+                <div class="hover-col" data-col="6"></div>
+              </div>
+
+              <div class="board-wrapper">
+                <div class="board-grid" id="game-board-grid">
+                  
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="sidebar-controls-panel stagger-in" id="active-game-controls-wrapper" style="display: none;">
+
+            <div class="turn-indicator-card glass-panel" id="game-turn-card" style="align-self: stretch;">
+              <span class="indicator-label">CURRENT TURN</span>
+              <div class="current-player-display">
+                <div class="token-preview player-1-color glow-red" id="game-turn-token"></div>
+                <span class="player-name" id="game-turn-name">Player 1</span>
+              </div>
+
+              <div class="ai-thinking-indicator" id="game-ai-thinking-box" style="display: none; align-items: center; gap: 8px;">
+                <span id="ai-thinking-text">AI is thinking...</span>
+                <div class="ai-dots-anim">
+                  <span class="dot">•</span>
+                  <span class="dot">•</span>
+                  <span class="dot">•</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-panel game-active-scoreboard">
+              <span class="win-trend-title font-display">SERIES SCOREBOARD</span>
+              <div class="faction-card f-p1">
+                <span class="name"><div class="token-preview player-1-color"></div> Player 1</span>
+                <span class="score" id="game-p1-score">0</span>
+              </div>
+              
+              <div class="faction-card" style="border-left: 4px solid var(--tie-color); border-right: none;">
+                <span class="name">Draws</span>
+                <span class="score" id="game-tie-score">0</span>
+              </div>
+
+              <div class="faction-card f-p2">
+                <span class="name" id="game-p2-label"><div class="token-preview player-2-color"></div> Computer AI</span>
+                <span class="score" id="game-p2-score">0</span>
+              </div>
+            </div>
+
+            <div class="glass-panel game-active-scoreboard" style="gap: 10px;">
+              <div class="undo-redo-controls" style="width: 100%;">
+                <button id="btn-game-undo" class="action-btn secondary-btn" style="flex: 1; justify-content: center;" aria-label="Undo last placement">
+                  <i data-lucide="undo"></i> <span>UNDO</span>
+                </button>
+                <button id="btn-game-redo" class="action-btn secondary-btn" style="flex: 1; justify-content: center;" aria-label="Redo last undone placement">
+                  <i data-lucide="redo"></i> <span>REDO</span>
+                </button>
+              </div>
+
+              <button id="btn-game-restart" class="action-btn primary-btn" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw"></i> <span>RESTART ROUND</span>
+              </button>
+
+              <button id="btn-game-resign" class="action-btn secondary-btn" style="width: 100%; justify-content: center; border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">
+                <i data-lucide="x-circle"></i> <span>RESIGN MATCH</span>
+              </button>
+            </div>
+
+            <div class="glass-panel local-match-logs scroll-panel">
+              <span class="win-trend-title font-display">PLACEMENT LOGS</span>
+              <ul class="local-log-list" id="local-move-logs-list">
+                
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div class="setup-buttons-row">
-          <button id="btn-setup-cancel" class="action-btn secondary-btn">CANCEL</button>
-          <button id="btn-setup-start" class="action-btn primary-btn">START MATCH</button>
+        <div id="view-stats" class="dashboard-grid-layout" style="display: none;">
+          
+          <div class="stats-card-grid stagger-in">
+            <div class="glass-panel metric-mini-card">
+              <div class="metric-inner">
+                <span class="metric-lbl">GAMES PLAYED</span>
+                <span class="metric-val font-display" id="substats-games-played">0</span>
+              </div>
+              <div class="metric-icon-box"><i data-lucide="activity"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card">
+              <div class="metric-inner">
+                <span class="metric-lbl">WIN RATE PERCENTAGE</span>
+                <span class="metric-val font-display" id="substats-win-rate">0%</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--player-2);"><i data-lucide="percent"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--player-1);">
+              <div class="metric-inner">
+                <span class="metric-lbl">TOTAL WINS RECORDED</span>
+                <span class="metric-val font-display" id="substats-wins" style="color: var(--player-1);">0</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--player-1);"><i data-lucide="trophy"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--player-2);">
+              <div class="metric-inner">
+                <span class="metric-lbl">TOTAL LOSSES RECORDED</span>
+                <span class="metric-val font-display" id="substats-losses" style="color: var(--player-2);">0</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--player-2);"><i data-lucide="award"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--tie-color);">
+              <div class="metric-inner">
+                <span class="metric-lbl">TIES AND DRAWS</span>
+                <span class="metric-val font-display" id="substats-draws" style="color: var(--tie-color);">0</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--tie-color);"><i data-lucide="help-circle"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card">
+              <div class="metric-inner">
+                <span class="metric-lbl">LONGEST WIN STREAK</span>
+                <span class="metric-val font-display" id="substats-longest-streak">0</span>
+              </div>
+              <div class="metric-icon-box"><i data-lucide="zap"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card">
+              <div class="metric-inner">
+                <span class="metric-lbl">FASTEST WIN DURATION</span>
+                <span class="metric-val font-display" id="substats-fastest-win">N/A</span>
+              </div>
+              <div class="metric-icon-box"><i data-lucide="timer"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card">
+              <div class="metric-inner">
+                <span class="metric-lbl">AVERAGE ROUND TIME</span>
+                <span class="metric-val font-display" id="substats-avg-time">0s</span>
+              </div>
+              <div class="metric-icon-box"><i data-lucide="clock"></i></div>
+            </div>
+          </div>
+
+          <div class="dash-row-3 stagger-in">
+            
+            <div class="glass-panel graphical-win-trend" style="grid-column: 1 / -1;">
+              <span class="win-trend-title font-display">DETAILED OPENING COLUMN POPULARITY</span>
+              <div class="opening-chart-bars" id="substats-opening-columns-chart-container">
+                
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div id="view-achievements" class="dashboard-grid-layout" style="display: none;">
+          <div class="ach-stats-bar glass-panel stagger-in" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px;">
+            <span class="win-trend-title font-display" style="margin-bottom: 0;">badge MILITARY DECORATIONS</span>
+            <span class="ach-ratio-tag font-display" id="substats-achievements-ratio" style="color: var(--player-1); font-weight: 800; text-shadow: 0 0 6px var(--player-1-glow);">0/42 UNLOCKED</span>
+          </div>
+
+          <div class="achievements-grid-layout stagger-in" id="substats-achievements-grid">
+            
+          </div>
+        </div>
+
+        <div id="view-history" class="dashboard-grid-layout" style="display: none;">
+          
+          <div class="glass-panel history-view-layout stagger-in">
+
+            <div class="history-toolbar">
+              <div class="search-input-wrapper">
+                <i data-lucide="search"></i>
+                <input type="text" id="history-search-input" class="search-field" placeholder="Search opponent, winner, or date...">
+              </div>
+
+              <div class="history-filters">
+                <select id="history-filter-outcome" class="custom-select select-control small-select" style="width: auto;">
+                  <option value="all">All Outcomes</option>
+                  <option value="win">P1 Victories</option>
+                  <option value="loss">Defeats</option>
+                  <option value="draw">Draws</option>
+                </select>
+                
+                <button id="btn-history-export" class="action-btn secondary-btn small-btn">
+                  <i data-lucide="download"></i> <span>EXPORT JSON</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="sticky-table-container scroll-panel">
+              <table class="sticky-table">
+                <thead>
+                  <tr>
+                    <th>MATCH DATE</th>
+                    <th>PLAY MODE (OPPONENT)</th>
+                    <th>DIFFICULTY</th>
+                    <th>TOTAL MOVES</th>
+                    <th>MATCH DURATION</th>
+                    <th>WINNER OUTCOME</th>
+                    <th style="text-align: right;">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody id="substats-history-table-body">
+                  
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-pagination-footer">
+              <span class="pagination-stats" id="history-pagination-stats">Showing 1-10 of 0 entries</span>
+              <div class="pagination-controls">
+                <button id="btn-history-page-prev" class="pagination-btn" disabled>
+                  <i data-lucide="chevron-left"></i> <span>Prev</span>
+                </button>
+                <button id="btn-history-page-next" class="pagination-btn" disabled>
+                  <span>Next</span> <i data-lucide="chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="view-profile" class="dashboard-grid-layout" style="display: none;">
+          
+          <div class="profile-view-layout">
+
+            <div class="glass-panel profile-sidebar-card stagger-in">
+              <div class="profile-avatar-xl">
+                <i data-lucide="rocket"></i>
+              </div>
+              
+              <div class="profile-sidebar-meta">
+                <h3 class="dash-username" id="profile-lvl-banner" style="font-size: 22px;">LEVEL 1</h3>
+                <span class="dash-rank" id="profile-rank-banner" style="display: block; margin-top: 4px;">BRONZE CADET</span>
+              </div>
+
+              <div class="profile-details" style="width: 100%; text-align: left;">
+                <div class="xp-level-row">
+                  <span class="profile-xp-value font-display" style="font-size: 11px; color: var(--text-muted);">CURRENT MATRIX XP</span>
+                </div>
+                <div class="xp-progress-bar" style="height: 10px; margin: 6px 0;">
+                  <div class="xp-progress-fill" id="profile-xp-fill-bar" style="width: 0%"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;" class="font-display">
+                  <span id="profile-xp-curr-num">0 XP</span>
+                  <span id="profile-xp-max-num" style="color: var(--text-muted);">1000 XP</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-panel profile-stats-card stagger-in">
+              <h3 class="profile-stats-title font-display">CHALLENGER ARCHIVE METRICS</h3>
+              
+              <div class="profile-meta-grid">
+                <div class="profile-meta-item">
+                  <span class="p-meta-label">MATCHES PLAYED</span>
+                  <span class="p-meta-val font-display" id="profile-games-played">0</span>
+                </div>
+                <div class="profile-meta-item">
+                  <span class="p-meta-label">WINNING RATE</span>
+                  <span class="p-meta-val font-display" id="profile-win-rate">0%</span>
+                </div>
+                <div class="profile-meta-item">
+                  <span class="p-meta-label">LONGEST MATCH STREAK</span>
+                  <span class="p-meta-val font-display" id="profile-longest-streak">0 Wins</span>
+                </div>
+                <div class="profile-meta-item">
+                  <span class="p-meta-label">FAVORITE OPENING COL</span>
+                  <span class="p-meta-val font-display" id="profile-fav-col">Column 4</span>
+                </div>
+                <div class="profile-meta-item">
+                  <span class="p-meta-label">FAVORITE GAME MODE</span>
+                  <span class="p-meta-val font-display" id="profile-fav-mode">VS Computer AI</span>
+                </div>
+                <div class="profile-meta-item">
+                  <span class="p-meta-label">ACHIEVEMENTS UNLOCKED</span>
+                  <span class="p-meta-val font-display" id="profile-badges-unlocked">0 Badges</span>
+                </div>
+              </div>
+
+              <h3 class="profile-stats-title font-display" style="margin-top: 15px;">BADGES EARNED</h3>
+              <div class="dash-recent-achievements" id="profile-unlocked-badges-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+                
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="view-settings" class="dashboard-grid-layout" style="display: none;">
+          <div class="settings-container glass-panel scroll-panel stagger-in" style="max-height: none; overflow-y: visible;">
+            
+            <div class="settings-form">
+              
+              <div class="setting-row">
+                <div class="setting-info">
+                  <span class="setting-label">Visual Theme Mode</span>
+                  <span class="setting-desc">Configure color theme profiles</span>
+                </div>
+                <select id="setting-theme" class="setting-control select-control">
+                  <option value="system">Follow System Preference</option>
+                  <option value="dark">Dark Neon Mode</option>
+                  <option value="light">Light Minimal Mode</option>
+                </select>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <span class="setting-label">Sound Synthesis volume</span>
+                  <span class="setting-desc">Toggle programmatic sound effects</span>
+                </div>
+                <div class="volume-slider-group">
+                  <button id="setting-mute-btn" class="sound-mute-btn" aria-label="Mute sound effects">
+                    <i data-lucide="volume-2" id="setting-mute-icon"></i>
+                  </button>
+                  <input type="range" id="setting-volume" min="0" max="1" step="0.1" value="0.5" class="slider-control" aria-label="Sound volume level">
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <span class="setting-label">Animation Velocity</span>
+                  <span class="setting-desc">Adjust disc dropping and UI velocities</span>
+                </div>
+                <select id="setting-speed" class="setting-control select-control">
+                  <option value="slow">Slow Motion</option>
+                  <option value="normal" selected>Normal</option>
+                  <option value="fast">High Velocity (Fast)</option>
+                </select>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <span class="setting-label">Background Particles</span>
+                  <span class="setting-desc">Ambient floating particles on main menu</span>
+                </div>
+                <div class="checkbox-wrapper">
+                  <input type="checkbox" id="setting-particles" checked class="checkbox-control">
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <span class="setting-label">Board Core Color</span>
+                  <span class="setting-desc">Select connect four grid casing color</span>
+                </div>
+                <div class="color-palette-selector">
+                  <button class="color-swatch-btn active-swatch" data-color="#1e293b" style="background-color: #1e293b;" aria-label="Slate Blue Board"></button>
+                  <button class="color-swatch-btn" data-color="#0284c7" style="background-color: #0284c7;" aria-label="Sky Blue Board"></button>
+                  <button class="color-swatch-btn" data-color="#059669" style="background-color: #059669;" aria-label="Emerald Green Board"></button>
+                  <button class="color-swatch-btn" data-color="#4f46e5" style="background-color: #4f46e5;" aria-label="Indigo Violet Board"></button>
+                  <button class="color-swatch-btn" data-color="#b91c1c" style="background-color: #b91c1c;" aria-label="Ruby Red Board"></button>
+                </div>
+              </div>
+
+              <div class="settings-danger-zone">
+                <h3 class="danger-zone-title font-display">DANGER ZONE</h3>
+                <div class="danger-buttons-row">
+                  <button id="btn-reset-stats" class="danger-btn">
+                    <i data-lucide="rotate-ccw"></i>
+                    <span>RESET STATS</span>
+                  </button>
+                  <button id="btn-reset-achievements" class="danger-btn">
+                    <i data-lucide="award"></i>
+                    <span>RESET ACHIEVEMENTS</span>
+                  </button>
+                  <button id="btn-reset-all" class="danger-btn-heavy">
+                    <i data-lucide="trash-2"></i>
+                    <span>RESET EVERYTHING</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
     </div>
   </div>
 
-  <!-- VICTORY / GAME OUTCOME OVERLAY DIALOG -->
   <div class="modal-overlay" id="end-modal">
     <div class="modal-card">
       <div class="modal-header-glow" id="end-modal-glow"></div>
       <div class="modal-content">
         <i data-lucide="trophy" class="winner-icon" id="end-modal-icon"></i>
         <h2 class="modal-title font-display" id="end-modal-title">PLAYER 1 WINS!</h2>
-        <p class="modal-description" id="end-modal-description">A brilliant series of vertical calculations delivers a crushing victory.</p>
-        
-        <!-- XP and leveling rewards box -->
+        <p class="modal-description" id="end-modal-description">A brilliant series of calculations delivers a crushing victory.</p>
+
         <div class="xp-reward-box" id="end-modal-xp-box">
           <span class="xp-reward-title font-display">REWARDS EARNED</span>
           <span class="xp-reward-val font-display">+<span id="end-modal-xp-gained">0</span> XP</span>
           <span class="level-up-tag font-display" id="end-modal-lvl-tag">LEVEL UP!</span>
         </div>
 
-        <!-- Series detailed scoreboard inside modal -->
         <div class="modal-series-scoreboard" id="end-modal-series-box">
           <div class="score-p1-row"><span class="label">P1 Wins:</span> <span id="modal-score-p1">0</span></div>
           <div class="score-p2-row"><span class="label" id="modal-p2-score-label">AI Wins:</span> <span id="modal-score-p2">0</span></div>
@@ -534,18 +695,17 @@
 
         <div class="end-modal-actions">
           <button id="btn-modal-view-stats" class="action-btn secondary-btn">VIEW STATS</button>
-          <button id="btn-modal-menu" class="action-btn secondary-btn">MAIN MENU</button>
+          <button id="btn-modal-menu" class="action-btn secondary-btn">DASHBOARD</button>
           <button id="btn-modal-again" class="action-btn primary-btn">PLAY AGAIN</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- REPLAY MODE OVERLAY CONTROLS BAR -->
   <div id="replay-controls-overlay" class="replay-overlay-bar">
     <div class="replay-logo-block font-display">
       <i data-lucide="tv"></i>
-      <span>REPLAY MODE</span>
+      <span>REPLAY ACTIVE PLAYBACK</span>
     </div>
     
     <div class="replay-middle-controls">
@@ -554,11 +714,11 @@
       <button id="btn-replay-next" class="replay-btn" aria-label="Step Forward"><i data-lucide="chevron-right"></i></button>
       
       <div class="replay-speed-selector">
-        <label for="replay-speed-select">Speed</label>
+        <label for="replay-speed-select">Playback</label>
         <select id="replay-speed-select" class="replay-select">
-          <option value="1500">1x</option>
-          <option value="800">2x</option>
-          <option value="400">4x</option>
+          <option value="1500">1x Speed</option>
+          <option value="800">2x Speed</option>
+          <option value="400">4x Speed</option>
         </select>
       </div>
     </div>
@@ -569,7 +729,6 @@
     </button>
   </div>
 
-  <!-- Main script routing module -->
   <script src="script.js" type="module"></script>
 </body>
 </html>

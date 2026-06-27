@@ -1,7 +1,6 @@
-// js/stats.js
+
 import { storage } from './storage.js';
 
-// Level & XP Formula: Level = L, XP required for level L -> L * 1000
 export function getXpRequiredForLevel(level) {
   return level * 1000;
 }
@@ -13,7 +12,6 @@ export function addXp(amount) {
   let currentLevel = profile.level;
   let xpNeeded = getXpRequiredForLevel(currentLevel);
 
-  // Handle Level Up
   while (profile.xp >= xpNeeded) {
     profile.xp -= xpNeeded;
     currentLevel++;
@@ -42,7 +40,6 @@ function getRankTitle(level) {
   return 'Bronze Cadet';
 }
 
-// Update statistics after a match is completed
 export function recordMatch(winner, gameMode, difficulty, movesCount, durationSec, openingCol, movesList = []) {
   const stats = storage.getStats();
   const history = storage.getHistory();
@@ -50,13 +47,11 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
   stats.gamesPlayed++;
   stats.totalMatchTime += durationSec;
 
-  // Log opening column frequency
   if (openingCol >= 0 && openingCol < 7) {
     stats.openingCols[openingCol]++;
   }
 
-  // Determine outcome relative to Player 1
-  let outcome = 'draw'; // 'win', 'loss', 'draw'
+  let outcome = 'draw'; 
   if (winner === 1) {
     outcome = 'win';
     stats.wins++;
@@ -73,20 +68,16 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
     stats.currentStreak = 0;
   }
 
-  // Track fastest win
   if (winner === 1) {
     if (stats.fastestWin === null || durationSec < stats.fastestWin) {
       stats.fastestWin = durationSec;
     }
   }
 
-  // Daily Streak Checker
   updateDailyStreak(stats);
 
-  // Save updated statistics
   storage.saveStats(stats);
 
-  // Add match to history log
   const newMatch = {
     id: 'match_' + Date.now(),
     date: new Date().toLocaleDateString(),
@@ -100,11 +91,10 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
     movesList: [...movesList]
   };
   
-  history.unshift(newMatch); // add to top
-  if (history.length > 50) history.pop(); // keep last 50 matches
+  history.unshift(newMatch); 
+  if (history.length > 50) history.pop(); 
   storage.saveHistory(history);
 
-  // Calculate XP rewards
   let xpGained = 0;
   if (outcome === 'win') {
     if (gameMode === 'ai') {
@@ -113,16 +103,16 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
       else if (difficulty === 'hard') xpGained = 350;
       else if (difficulty === 'impossible') xpGained = 500;
     } else {
-      xpGained = 150; // local pvp win
+      xpGained = 150; 
     }
-    // Win streak bonus
+    
     if (stats.currentStreak > 1) {
       xpGained += stats.currentStreak * 15;
     }
   } else if (outcome === 'loss') {
-    xpGained = 30; // Consolation XP
+    xpGained = 30; 
   } else {
-    xpGained = 60; // Draw XP
+    xpGained = 60; 
   }
 
   const xpReport = addXp(xpGained);
@@ -157,7 +147,6 @@ function updateDailyStreak(stats) {
   daily.lastPlayedDate = todayStr;
 }
 
-// Generate simulated local leaderboard data including the user
 export function getLeaderboardData() {
   const profile = storage.getProfile();
   const stats = storage.getStats();
@@ -170,7 +159,6 @@ export function getLeaderboardData() {
     { name: 'ChipChallenger', level: 5, wins: 20, streak: 3, xp: 5200, isSelf: false }
   ];
 
-  // Insert user
   const totalUserXp = calculateTotalXp(profile.level, profile.xp);
   const selfRecord = {
     name: 'You (Player 1)',
@@ -182,8 +170,7 @@ export function getLeaderboardData() {
   };
 
   mockUsers.push(selfRecord);
-  
-  // Sort by total XP descending
+
   mockUsers.sort((a, b) => b.xp - a.xp);
 
   return mockUsers;
@@ -197,7 +184,6 @@ function calculateTotalXp(level, currentXp) {
   return total + currentXp;
 }
 
-// Export data as JSON file download
 export function exportStatsAsJson() {
   const data = {
     profile: storage.getProfile(),

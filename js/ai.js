@@ -1,4 +1,4 @@
-// js/ai.js
+
 import { ROWS, COLS } from './board.js';
 
 export class ConnectFourAI {
@@ -10,7 +10,6 @@ export class ConnectFourAI {
     this.difficulty = difficulty;
   }
 
-  // Get the column to play
   getMove(grid, p1ColorId = 1, aiColorId = 2) {
     const validMoves = this.getValidMoves(grid);
     if (validMoves.length === 0) return -1;
@@ -29,12 +28,12 @@ export class ConnectFourAI {
   }
 
   getEasyMove(validMoves) {
-    // 100% random selection
+    
     return validMoves[Math.floor(Math.random() * validMoves.length)];
   }
 
   getMediumMove(grid, validMoves, p1, ai) {
-    // 1. Check if AI can win immediately
+    
     for (const col of validMoves) {
       const tempGrid = this.copyGrid(grid);
       const r = this.getLowestEmptyRowInGrid(tempGrid, col);
@@ -44,7 +43,6 @@ export class ConnectFourAI {
       }
     }
 
-    // 2. Check if opponent can win immediately and block
     for (const col of validMoves) {
       const tempGrid = this.copyGrid(grid);
       const r = this.getLowestEmptyRowInGrid(tempGrid, col);
@@ -54,7 +52,6 @@ export class ConnectFourAI {
       }
     }
 
-    // 3. Fallback to center-weighted move or random
     const centerCols = [3, 2, 4, 1, 5, 0, 6];
     for (const col of centerCols) {
       if (validMoves.includes(col)) return col;
@@ -73,10 +70,6 @@ export class ConnectFourAI {
     return column !== -1 ? column : this.getEasyMove(this.getValidMoves(grid));
   }
 
-  /* ==========================================
-     MINIMAX ENGINE WITH ALPHA-BETA PRUNING
-     ========================================== */
-
   minimax(grid, depth, alpha, beta, isMaximizing, p1, ai) {
     const validCols = this.getValidMoves(grid);
     const isAiWon = this.checkWinInGrid(grid, ai);
@@ -88,7 +81,6 @@ export class ConnectFourAI {
     if (isTie) return { score: 0, column: -1 };
     if (depth === 0) return { score: this.evaluateGrid(grid, p1, ai), column: -1 };
 
-    // Sort valid columns by center proximity to optimize Alpha-Beta pruning cuts
     const centerOrder = [3, 2, 4, 1, 5, 0, 6];
     validCols.sort((a, b) => centerOrder.indexOf(a) - centerOrder.indexOf(b));
 
@@ -107,7 +99,7 @@ export class ConnectFourAI {
           bestCol = col;
         }
         alpha = Math.max(alpha, value);
-        if (alpha >= beta) break; // Beta cut-off
+        if (alpha >= beta) break; 
       }
       return { score: value, column: bestCol };
     } else {
@@ -125,17 +117,15 @@ export class ConnectFourAI {
           bestCol = col;
         }
         beta = Math.min(beta, value);
-        if (alpha >= beta) break; // Alpha cut-off
+        if (alpha >= beta) break; 
       }
       return { score: value, column: bestCol };
     }
   }
 
-  // Heuristic Grid Scorer
   evaluateGrid(grid, p1, ai) {
     let score = 0;
 
-    // 1. Center Column Positional Value
     const centerCol = 3;
     let centerCount = 0;
     for (let r = 0; r < ROWS; r++) {
@@ -143,29 +133,24 @@ export class ConnectFourAI {
     }
     score += centerCount * 4;
 
-    // 2. Evaluate all slices of 4
-    // Horizontal Slices
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         score += this.scoreSlice([grid[r][c], grid[r][c+1], grid[r][c+2], grid[r][c+3]], p1, ai);
       }
     }
 
-    // Vertical Slices
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS; c++) {
         score += this.scoreSlice([grid[r][c], grid[r+1][c], grid[r+2][c], grid[r+3][c]], p1, ai);
       }
     }
 
-    // Diagonal Slices (\)
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         score += this.scoreSlice([grid[r][c], grid[r+1][c+1], grid[r+2][c+2], grid[r+3][c+3]], p1, ai);
       }
     }
 
-    // Diagonal Slices (/)
     for (let r = 3; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         score += this.scoreSlice([grid[r][c], grid[r-1][c+1], grid[r-2][c+2], grid[r-3][c+3]], p1, ai);
@@ -190,17 +175,13 @@ export class ConnectFourAI {
     }
 
     if (p1Count === 3 && emptyCount === 1) {
-      score -= 300; // Strong block incentive
+      score -= 300; 
     } else if (p1Count === 2 && emptyCount === 2) {
       score -= 50;
     }
 
     return score;
   }
-
-  /* ==========================================
-     UTILITIES AND GRID HELPERS
-     ========================================== */
 
   getValidMoves(grid) {
     const moves = [];
@@ -222,7 +203,7 @@ export class ConnectFourAI {
   }
 
   checkWinInGrid(grid, player) {
-    // Horizontal Check
+    
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         if (grid[r][c] === player && grid[r][c+1] === player && grid[r][c+2] === player && grid[r][c+3] === player) {
@@ -230,7 +211,7 @@ export class ConnectFourAI {
         }
       }
     }
-    // Vertical Check
+    
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS; c++) {
         if (grid[r][c] === player && grid[r+1][c] === player && grid[r+2][c] === player && grid[r+3][c] === player) {
@@ -238,7 +219,7 @@ export class ConnectFourAI {
         }
       }
     }
-    // Diagonal (\) Check
+    
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         if (grid[r][c] === player && grid[r+1][c+1] === player && grid[r+2][c+2] === player && grid[r+3][c+3] === player) {
@@ -246,7 +227,7 @@ export class ConnectFourAI {
         }
       }
     }
-    // Diagonal (/) Check
+    
     for (let r = 3; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         if (grid[r][c] === player && grid[r-1][c+1] === player && grid[r-2][c+2] === player && grid[r-3][c+3] === player) {
