@@ -1,27 +1,38 @@
+
 import { storage } from './storage.js';
-
-export function getStats() {
-  return storage.getStats();
-}
-
-export function clearAllData() {
-  storage.resetAll();
-}
-
-export function getLeaderboard() {
-  return getLeaderboardData();
-}
 
 export function getXpRequiredForLevel(level) {
   return level * 1000;
 }
 
 export function addXp(amount) {
-  return storage.addXP(amount);
+  const profile = storage.getProfile();
+  profile.xp += amount;
+
+  let currentLevel = profile.level;
+  let xpNeeded = getXpRequiredForLevel(currentLevel);
+
+  while (profile.xp >= xpNeeded) {
+    profile.xp -= xpNeeded;
+    currentLevel++;
+    xpNeeded = getXpRequiredForLevel(currentLevel);
+  }
+  
+  profile.level = currentLevel;
+  profile.rank = getRankTitle(currentLevel);
+  storage.saveProfile(profile);
+
+  return {
+    xpAdded: amount,
+    level: profile.level,
+    xp: profile.xp,
+    xpNeeded: xpNeeded,
+    rank: profile.rank
+  };
 }
 
 function getRankTitle(level) {
-  if (level >= 20) return 'Connect Master';
+  if (level >= 20) return 'Grand Master';
   if (level >= 15) return 'Diamond General';
   if (level >= 10) return 'Platinum Major';
   if (level >= 6)  return 'Gold Sergeant';
@@ -64,6 +75,7 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
   }
 
   updateDailyStreak(stats);
+
   storage.saveStats(stats);
 
   const newMatch = {
@@ -103,18 +115,20 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
     xpGained = 60; 
   }
 
-  storage.addXP(xpGained);
+  const xpReport = addXp(xpGained);
 
   return {
     match: newMatch,
     stats: stats,
-    xpGained: xpGained
+    xpGained: xpGained,
+    levelUp: xpReport.level > storage.getProfile().level,
+    xpReport: xpReport
   };
 }
 
 function updateDailyStreak(stats) {
   const todayStr = new Date().toDateString();
-  const daily = stats.dailyStreak || { lastPlayedDate: null, streakCount: 0 };
+  const daily = stats.dailyStreak;
   
   if (daily.lastPlayedDate === null) {
     daily.streakCount = 1;
@@ -131,7 +145,6 @@ function updateDailyStreak(stats) {
     }
   }
   daily.lastPlayedDate = todayStr;
-  stats.dailyStreak = daily;
 }
 
 export function getLeaderboardData() {
@@ -139,25 +152,36 @@ export function getLeaderboardData() {
   const stats = storage.getStats();
 
   const mockUsers = [
-    { name: 'Minimax_AI', level: 42, wins: 382, streak: 25, xp: 42500, isSelf: false },
+    { name: 'AlphaMinimax_AI', level: 42, wins: 382, streak: 25, xp: 42500, isSelf: false },
     { name: 'GridMaster99', level: 18, wins: 120, streak: 12, xp: 18400, isSelf: false },
     { name: 'ConnectWizard', level: 14, wins: 95, streak: 8, xp: 14200, isSelf: false },
     { name: 'PixelPioneer', level: 9, wins: 45, streak: 5, xp: 9100, isSelf: false },
     { name: 'ChipChallenger', level: 5, wins: 20, streak: 3, xp: 5200, isSelf: false }
   ];
 
+  const totalUserXp = calculateTotalXp(profile.level, profile.xp);
   const selfRecord = {
-    name: profile.username || 'Player 1',
+    name: 'You (Player 1)',
     level: profile.level,
     wins: stats.wins,
     streak: stats.longestStreak,
-    xp: profile.xp,
+    xp: totalUserXp,
     isSelf: true
   };
 
   mockUsers.push(selfRecord);
+
   mockUsers.sort((a, b) => b.xp - a.xp);
+
   return mockUsers;
+}
+
+function calculateTotalXp(level, currentXp) {
+  let total = 0;
+  for (let i = 1; i < level; i++) {
+    total += getXpRequiredForLevel(i);
+  }
+  return total + currentXp;
 }
 
 export function exportStatsAsJson() {

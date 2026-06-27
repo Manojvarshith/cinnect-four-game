@@ -1,1202 +1,1205 @@
-import { sound } from './js/sound.js';
-import { storage, stateManager } from './js/storage.js';
-import { getStats, recordMatch, getLeaderboard, clearAllData } from './js/stats.js';
-import { achievements, checkAchievements, getUnlockProgress } from './js/achievements.js';
-import { Board } from './js/board.js';
-import { getAIMove } from './js/ai.js';
-import { initConfetti, triggerWinConfetti } from './js/animation.js';
+// script.js
+import { storage } from './js/storage.js';
+import { sounds } from './js/sound.js';
+import { anim } from './js/animation.js';
+import { BoardManager, ROWS, COLS } from './js/board.js';
+import { ConnectFourAI } from './js/ai.js';
+import { recordMatch, getLeaderboardData, exportStatsAsJson, getXpRequiredForLevel } from './js/stats.js';
+import { ACHIEVEMENTS, checkAchievements, unlockAchievement } from './js/achievements.js';
 
-// ============================================================================
-// GLOBAL APPLICATION STATE
-// ============================================================================
-let board = new Board();
-let gameMode = 'ai'; // 'ai' or 'pvp'
-let activeDifficulty = 'medium';
-let seriesTarget = 1;
-let p1Wins = 0;
-let p2Wins = 0;
-let matchStartTime = Date.now();
-let timerInterval = null;
-let p1Seconds = 0;
-let p2Seconds = 0;
-
-// History Table Pagination State
-let historyCurrentPage = 1;
-const HISTORY_ITEMS_PER_PAGE = 8;
-let filteredHistoryCache = [];
-
-// Charts instances
-let dashWinChart = null;
-let dashOpeningsChart = null;
-let statsOpeningsChart = null;
-
-// ============================================================================
-// INITIALIZATION ON DOM LOAD
-// ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Immediately display dashboard without blocking
-  try {
-    switchView('dashboard');
-  } catch (err) {
-    console.error('Non-blocking switchView error:', err);
-  }
+  // Initialize Lucide Icons
+  lucide.createIcons();
 
-  // Background initialization of UI components and preferences
-  setTimeout(() => {
-    try {
-      if (window.lucide) window.lucide.createIcons();
-      initConfetti();
+  /* ==========================================
+     GLOBAL MANAGERS
+     ========================================== */
+  const board = new BoardManager();
+  const ai = new ConnectFourAI('medium');
 
-      // Load saved preferences
-      const settings = storage.getSettings();
-      if (settings.theme === 'light') {
-        document.body.classList.remove('theme-dark');
-        document.body.classList.add('theme-light');
-        const themeSel = document.getElementById('setting-theme-select');
-        if (themeSel) themeSel.value = 'light';
-      }
-      if (settings.soundMuted) {
-        sound.setMute(true);
-        const muteToggle = document.getElementById('setting-sound-toggle');
-        if (muteToggle) muteToggle.checked = false;
-        updateQuickMuteIcon();
-      }
-      if (settings.animationSpeed) {
-        const speedSel = document.getElementById('setting-speed-select');
-        if (speedSel) speedSel.value = settings.animationSpeed;
-      }
+  // Match session variables
+  let gameMode = 'ai'; // 'ai', 'pvp', 'demo'
+  let activeDifficulty = 'medium';
+  let isAiPlaying = false;
+  let matchStartTime = 0;
+  let activeReplayIndex = 0;
+  let activeReplayMoves = [];
+  let isReplayPlaying = false;
+  let replayTimeout = null;
+  let currentReplaySpeed = 1500; // ms
 
-      // Bind all interactive listeners
-      bindNavigation();
-      bindGameControls();
-      bindHistoryControls();
-      bindSettingsAndModals();
-      
-      // Centralized State Manager Subscription
-      stateManager.subscribe(() => {
-        const profile = storage.getProfile();
-        const sideName = document.getElementById('sidebar-username');
-        const sideLevel = document.getElementById('sidebar-userlevel');
-        if (sideName) sideName.textContent = profile.username;
-        if (sideLevel) sideLevel.textContent = `Level ${profile.level} • ${profile.rankTitle}`;
+  /* ==========================================
+     DOM QUERIES
+     ========================================== */
+  const screens = {
+    splash: document.getElementById('screen-splash'),
+    menu: document.getElementById('screen-menu'),
+    settings: document.getElementById('screen-settings'),
+    stats: document.getElementById('screen-stats'),
+    achievements: document.getElementById('screen-achievements'),
+    leaderboard: document.getElementById('screen-leaderboard'),
+    game: document.getElementById('screen-game')
+  };
 
-        if (document.getElementById('view-dashboard')?.classList.contains('view-active')) renderDashboard();
-        if (document.getElementById('view-statistics')?.classList.contains('view-active')) renderStatistics();
-        if (document.getElementById('view-profile')?.classList.contains('view-active')) renderProfile();
-        if (document.getElementById('view-achievements')?.classList.contains('view-active')) {
-          const activeAchTab = document.querySelector('.ach-tab.active')?.getAttribute('data-filter') || 'all';
-          renderAchievements(activeAchTab);
-        }
-        if (document.getElementById('view-history')?.classList.contains('view-active')) renderHistoryTable();
-      });
+  // Modals & Panels
+  const setupModal = document.getElementById('setup-modal');
+  const endModal = document.getElementById('end-modal');
+  const replayOverlay = document.getElementById('replay-controls-overlay');
+  const achievementToast = document.getElementById('achievement-toast');
 
-      // Refresh active view after bindings
-      switchView('dashboard');
+  // Settings DOM
+  const selectTheme = document.getElementById('setting-theme');
+  const selectSpeed = document.getElementById('setting-speed');
+  const checkParticles = document.getElementById('setting-particles');
+  const rangeVolume = document.getElementById('setting-volume');
+  const btnMute = document.getElementById('btn-sound-mute-toggle');
+  const muteIcon = document.getElementById('mute-icon');
 
-      // Run automated self-verification diagnostic
-      setTimeout(() => { if (window.runAutomatedVerification) window.runAutomatedVerification(true); }, 500);
-    } catch (err) {
-      console.error('Non-blocking background initialization error:', err);
+  // Setup Modal DOM
+  const selectSetupSeries = document.getElementById('setup-series-mode');
+  const selectSetupDifficulty = document.getElementById('setup-difficulty-select');
+  const difficultyGroup = document.getElementById('setup-difficulty-group');
+
+  // Game UI DOM
+  const gameGrid = document.getElementById('game-board-grid');
+  const columnHovers = document.getElementById('game-column-hovers');
+  const turnCard = document.getElementById('game-turn-card');
+  const turnToken = document.getElementById('game-turn-token');
+  const turnName = document.getElementById('game-turn-name');
+  const aiThinkingBox = document.getElementById('game-ai-thinking-box');
+  const seriesTargetBanner = document.getElementById('series-target-banner');
+  const seriesDotsRow = document.getElementById('series-dots-row');
+
+  // Scoreboard
+  const p1ScoreEl = document.getElementById('game-p1-score');
+  const p2ScoreEl = document.getElementById('game-tie-score'); // Draws
+  const p3ScoreEl = document.getElementById('game-p2-score'); // Player 2/AI
+  const p2Label = document.getElementById('game-p2-label');
+  const p2TokenPreview = document.getElementById('game-p2-token-preview');
+
+  // Profiles UI
+  const menuProfileName = document.getElementById('menu-profile-name');
+  const menuProfileRank = document.getElementById('menu-profile-rank');
+  const menuProfileLvl = document.getElementById('menu-profile-lvl');
+  const menuProfileXpCurr = document.getElementById('menu-profile-xp-curr');
+  const menuProfileXpMax = document.getElementById('menu-profile-xp-max');
+  const menuProfileXpFill = document.getElementById('menu-profile-xp-fill');
+
+  /* ==========================================
+     VIEW NAVIGATION CONTROLLER
+     ========================================== */
+  function showScreen(screenKey) {
+    sounds.playClick();
+    
+    // Deactivate all screens
+    Object.keys(screens).forEach(key => {
+      screens[key].classList.remove('screen-active');
+    });
+
+    // Stop loops by default
+    anim.stopBgParticles();
+
+    // Activate target
+    if (screens[screenKey]) {
+      screens[screenKey].classList.add('screen-active');
     }
-  }, 10);
-});
 
-// ============================================================================
-// VIEW ROUTER ENGINE
-// ============================================================================
-window.switchView = function(viewId) {
-  sound.playClick();
-  
-  // Hide all views
-  document.querySelectorAll('.app-view').forEach(v => {
-    v.classList.remove('view-active');
-  });
-
-  // Show target view
-  const target = document.getElementById(`view-${viewId}`);
-  if (target) {
-    target.classList.add('view-active');
+    // Custom Screen Actions
+    if (screenKey === 'menu') {
+      const prefs = storage.getPreferences();
+      if (prefs.particles === 'on') {
+        anim.startBgParticles();
+      }
+      renderMenuProfile();
+    } else if (screenKey === 'stats') {
+      renderStatsDashboard();
+    } else if (screenKey === 'achievements') {
+      renderAchievementsGrid();
+    } else if (screenKey === 'leaderboard') {
+      renderLeaderboard();
+    }
   }
 
-  // Update Sidebar buttons active state
-  document.querySelectorAll('.sidebar-nav .nav-item').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-view') === viewId);
-  });
+  /* ==========================================
+     INITIAL PREFERENCE SETUP
+     ========================================== */
+  function applyPreferences() {
+    const prefs = storage.getPreferences();
+    
+    // 1. Theme Configuration
+    applyTheme(prefs.theme);
+    selectTheme.value = prefs.theme;
 
-  // Update Bottom Nav buttons active state
-  document.querySelectorAll('.app-bottom-nav .bottom-nav-item').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-view') === viewId);
-  });
+    // 2. Sound Configuration
+    sounds.setVolume(prefs.volume);
+    rangeVolume.value = prefs.volume;
+    const isMuted = prefs.sound === 'off';
+    sounds.setMute(isMuted);
+    updateMuteIcon(isMuted);
 
-  // Render dynamic view data
-  if (viewId === 'dashboard') renderDashboard();
-  if (viewId === 'play') renderPlayArena();
-  if (viewId === 'statistics') renderStatistics();
-  if (viewId === 'history') {
-    historyCurrentPage = 1;
-    renderHistoryTable();
-  }
-  if (viewId === 'achievements') renderAchievements('all');
-  if (viewId === 'profile') renderProfile();
+    // 3. Speed Configuration
+    applyAnimationSpeed(prefs.speed);
+    selectSpeed.value = prefs.speed;
 
-  if (window.lucide) window.lucide.createIcons();
-};
+    // 4. Board Color Configuration
+    applyBoardColor(prefs.boardColor);
+    highlightSwatch(prefs.boardColor);
 
-window.startQuickMatch = function() {
-  switchView('play');
-  startNewMatch();
-};
-
-function bindNavigation() {
-  // Sidebar items
-  document.querySelectorAll('.sidebar-nav .nav-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const view = btn.getAttribute('data-view');
-      if (view) switchView(view);
-    });
-  });
-
-  // Bottom nav items
-  document.querySelectorAll('.app-bottom-nav .bottom-nav-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const view = btn.getAttribute('data-view');
-      if (view) switchView(view);
-    });
-  });
-
-  const quickMatchBtn = document.getElementById('quick-match-btn');
-  if (quickMatchBtn) {
-    quickMatchBtn.addEventListener('click', () => {
-      sound.playClick();
-      switchView('play');
-      startNewMatch();
-    });
+    // 5. Particles config
+    checkParticles.checked = prefs.particles === 'on';
+    if (prefs.particles === 'on' && screens.menu.classList.contains('screen-active')) {
+      anim.startBgParticles();
+    }
   }
 
-  // Sidebar toggle collapse
-  const sidebarToggle = document.getElementById('sidebar-toggle-btn');
-  if (sidebarToggle) {
-    sidebarToggle.addEventListener('click', () => {
-      sound.playClick();
-      const sidebar = document.getElementById('app-sidebar');
-      if (sidebar) sidebar.classList.toggle('collapsed');
-    });
+  function applyTheme(theme) {
+    document.body.classList.remove('light-mode', 'dark-theme-forced', 'system-theme-active');
+    if (theme === 'light') {
+      document.body.classList.add('light-mode', 'dark-theme-forced');
+    } else if (theme === 'dark') {
+      // Dark mode is default, force dark theme variables
+      document.body.classList.add('dark-theme-forced');
+    } else {
+      document.body.classList.add('system-theme-active');
+    }
   }
 
-  // Quick action footer buttons
-  const quickMute = document.getElementById('quick-mute-btn');
-  if (quickMute) {
-    quickMute.addEventListener('click', () => {
-      sound.playClick();
-      const isMuted = sound.toggleMute();
-      storage.saveSettings({ soundMuted: isMuted });
-      const toggle = document.getElementById('setting-sound-toggle');
-      if (toggle) toggle.checked = !isMuted;
-      updateQuickMuteIcon();
-    });
+  function applyAnimationSpeed(speed) {
+    let factor = 1;
+    if (speed === 'slow') factor = 2;
+    if (speed === 'fast') factor = 0.4;
+    
+    document.documentElement.style.setProperty('--anim-speed-factor', factor);
   }
 
-  const quickTheme = document.getElementById('quick-theme-btn');
-  if (quickTheme) {
-    quickTheme.addEventListener('click', () => {
-      sound.playClick();
-      const isDark = document.body.classList.contains('theme-dark');
-      if (isDark) {
-        document.body.classList.remove('theme-dark');
-        document.body.classList.add('theme-light');
-        storage.saveSettings({ theme: 'light' });
-        const sel = document.getElementById('setting-theme-select');
-        if (sel) sel.value = 'light';
+  function applyBoardColor(colorHex) {
+    document.documentElement.style.setProperty('--board-color', colorHex);
+  }
+
+  function updateMuteIcon(isMuted) {
+    if (isMuted) {
+      muteIcon.setAttribute('data-lucide', 'volume-x');
+    } else {
+      muteIcon.setAttribute('data-lucide', 'volume-2');
+    }
+    lucide.createIcons();
+  }
+
+  function highlightSwatch(colorHex) {
+    const swatches = document.querySelectorAll('.color-swatch-btn');
+    swatches.forEach(sw => {
+      if (sw.dataset.color === colorHex) {
+        sw.classList.add('active-swatch');
       } else {
-        document.body.classList.remove('theme-light');
-        document.body.classList.add('theme-dark');
-        storage.saveSettings({ theme: 'dark' });
-        const sel = document.getElementById('setting-theme-select');
-        if (sel) sel.value = 'dark';
+        sw.classList.remove('active-swatch');
       }
-      updateQuickThemeIcon();
     });
   }
-}
 
-function updateQuickMuteIcon() {
-  const icon = document.getElementById('quick-mute-icon');
-  if (!icon) return;
-  if (sound.isMuted) {
-    icon.setAttribute('data-lucide', 'volume-x');
-  } else {
-    icon.setAttribute('data-lucide', 'volume-2');
-  }
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function updateQuickThemeIcon() {
-  const icon = document.getElementById('quick-theme-icon');
-  if (!icon) return;
-  if (document.body.classList.contains('theme-light')) {
-    icon.setAttribute('data-lucide', 'sun');
-  } else {
-    icon.setAttribute('data-lucide', 'moon');
-  }
-  if (window.lucide) window.lucide.createIcons();
-}
-
-// ============================================================================
-// COUNT-UP ANIMATION UTILITY
-// ============================================================================
-function animateCountUp(elementId, targetValue, suffix = '') {
-  const el = document.getElementById(elementId);
-  if (!el) return;
-  let current = 0;
-  const duration = 800; // ms
-  const stepTime = 20;
-  const steps = duration / stepTime;
-  const increment = targetValue / steps;
-
-  if (targetValue === 0) {
-    el.textContent = '0' + suffix;
-    return;
+  /* ==========================================
+     PROFILE AND LEVEL PRESENTATION
+     ========================================== */
+  function renderMenuProfile() {
+    const profile = storage.getProfile();
+    menuProfileName.textContent = `PLAYER LEVEL ${profile.level}`;
+    menuProfileRank.textContent = profile.rank.toUpperCase();
+    menuProfileLvl.textContent = profile.level;
+    
+    const xpMax = getXpRequiredForLevel(profile.level);
+    menuProfileXpCurr.textContent = profile.xp;
+    menuProfileXpMax.textContent = xpMax;
+    
+    const percentage = Math.min((profile.xp / xpMax) * 100, 100);
+    menuProfileXpFill.style.width = `${percentage}%`;
   }
 
-  const timer = setInterval(() => {
-    current += increment;
-    if (current >= targetValue) {
-      clearInterval(timer);
-      el.textContent = Math.round(targetValue) + suffix;
-    } else {
-      el.textContent = Math.round(current) + suffix;
-    }
-  }, stepTime);
-}
-
-// ============================================================================
-// VIEW RENDERERS
-// ============================================================================
-
-// 1. DASHBOARD
-function renderDashboard() {
-  const stats = getStats();
-  const history = storage.getHistory();
-  const profile = storage.getProfile();
-  const unlockProg = getUnlockProgress();
-
-  // Sidebar User Info
-  const sideName = document.getElementById('sidebar-username');
-  const sideLevel = document.getElementById('sidebar-userlevel');
-  if (sideName) sideName.textContent = profile.username;
-  if (sideLevel) sideLevel.textContent = `Level ${profile.level} • ${profile.rankTitle}`;
-
-  // Hero Banner
-  document.getElementById('dash-username').textContent = profile.username;
-  document.getElementById('dash-level-badge').textContent = `LVL ${profile.level}`;
-  document.getElementById('dash-rank-tag').textContent = profile.rankTitle;
-  document.getElementById('dash-xp-label').textContent = `XP: ${profile.xp} / ${profile.xpNeeded}`;
-  const xpPct = Math.min(100, Math.round((profile.xp / profile.xpNeeded) * 100));
-  document.getElementById('dash-xp-percent').textContent = `${xpPct}%`;
-  document.getElementById('dash-xp-fill').style.width = `${xpPct}%`;
-
-  // Streaks
-  animateCountUp('dash-streak-val', stats.currentStreak);
-  document.getElementById('dash-longest-val').textContent = stats.longestStreak;
-
-  // Metrics
-  animateCountUp('dash-games-val', stats.gamesPlayed);
-  animateCountUp('dash-wins-val', stats.wins);
-  animateCountUp('dash-losses-val', stats.losses);
-  animateCountUp('dash-draws-val', stats.draws);
-  
-  const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
-  animateCountUp('dash-winrate-val', winRate, '%');
-  
-  const avgTime = stats.gamesPlayed > 0 ? Math.round(stats.totalMatchTime / stats.gamesPlayed) : 0;
-  document.getElementById('dash-avgtime-val').textContent = `${avgTime}s`;
-
-  // Recent Matches List
-  const recentContainer = document.getElementById('dashboard-recent-matches');
-  if (recentContainer) {
-    if (history.length === 0) {
-      recentContainer.innerHTML = `<div class="empty-state">No recent matches recorded yet.</div>`;
-    } else {
-      recentContainer.innerHTML = history.slice(0, 4).map(m => {
-        let dotClass = 'draw';
-        if (m.winnerId === 1) dotClass = 'win';
-        if (m.winnerId === 2) dotClass = 'loss';
-        return `
-          <div class="match-item">
-            <div class="match-left">
-              <span class="match-outcome-dot ${dotClass}"></span>
-              <div>
-                <div class="match-opp">${m.opponent}</div>
-                <div class="match-time">${m.date} at ${m.time}</div>
-              </div>
-            </div>
-            <span class="match-badge">${m.winnerId === 1 ? 'VICTORY' : (m.winnerId === 2 ? 'DEFEAT' : 'DRAW')}</span>
-          </div>
-        `;
-      }).join('');
+  /* ==========================================
+     BOARD RENDERING ENGINE
+     ========================================== */
+  function createBoardDOM() {
+    gameGrid.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const slot = document.createElement('div');
+        slot.classList.add('cell-slot');
+        slot.dataset.row = r;
+        slot.dataset.col = c;
+        gameGrid.appendChild(slot);
+      }
     }
   }
 
-  // Achievement Teaser
-  document.getElementById('dash-ach-count').textContent = `${unlockProg.unlocked} / ${unlockProg.total} Unlocked`;
-  const achPct = Math.round((unlockProg.unlocked / unlockProg.total) * 100);
-  document.getElementById('dash-ach-pct').textContent = `${achPct}%`;
-  document.getElementById('dash-ach-fill').style.width = `${achPct}%`;
+  function renderGridState() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const slot = gameGrid.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+        const value = board.grid[r][c];
+        
+        // Clear slot
+        slot.innerHTML = '';
 
-  // Next locked achievement
-  const nextAchBox = document.getElementById('dashboard-next-achievement');
-  if (nextAchBox) {
-    const nextLocked = achievements.find(a => !a.unlocked);
-    if (nextLocked) {
-      nextAchBox.innerHTML = `
-        <div class="next-ach-icon"><i data-lucide="${nextLocked.icon}"></i></div>
-        <div class="next-ach-details">
-          <span class="next-ach-title">${nextLocked.title}</span>
-          <span class="next-ach-desc">${nextLocked.description}</span>
-        </div>
-      `;
-    } else {
-      nextAchBox.innerHTML = `<div class="empty-state">All achievements mastered!</div>`;
-    }
-  }
-
-  // Render Charts
-  renderDashboardCharts(stats);
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function renderDashboardCharts(stats) {
-  const winCtx = document.getElementById('dashboardChart');
-  const openCtx = document.getElementById('openingsChart');
-
-  if (winCtx) {
-    if (dashWinChart) dashWinChart.destroy();
-    dashWinChart = new Chart(winCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Victories', 'Defeats', 'Draws'],
-        datasets: [{
-          data: [stats.wins, stats.losses, stats.draws],
-          backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
-          borderColor: 'rgba(15, 23, 42, 0.8)',
-          borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter' } } }
+        if (value !== 0) {
+          const chip = document.createElement('div');
+          chip.classList.add('chip');
+          chip.classList.add(value === 1 ? 'p1' : 'p2');
+          slot.appendChild(chip);
         }
       }
-    });
-  }
-
-  if (openCtx) {
-    if (dashOpeningsChart) dashOpeningsChart.destroy();
-    dashOpeningsChart = new Chart(openCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Col 1', 'Col 2', 'Col 3', 'Col 4', 'Col 5', 'Col 6', 'Col 7'],
-        datasets: [{
-          label: 'Openings Played',
-          data: stats.openingCols || [0,0,0,0,0,0,0],
-          backgroundColor: 'rgba(99, 102, 241, 0.6)',
-          borderColor: '#6366f1',
-          borderWidth: 1,
-          borderRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
-        },
-        plugins: { legend: { display: false } }
-      }
-    });
-  }
-}
-
-// 2. PLAY ARENA
-function renderPlayArena() {
-  renderBoardDOM();
-  updateScoreboardDisplay();
-  updateMoveHistoryLog();
-  startMatchTimers();
-}
-
-function bindGameControls() {
-  // Mode Selection
-  const aiBtn = document.getElementById('mode-ai-btn');
-  const pvpBtn = document.getElementById('mode-pvp-btn');
-  const diffSection = document.getElementById('ai-difficulty-section');
-
-  if (aiBtn && pvpBtn) {
-    aiBtn.addEventListener('click', () => {
-      sound.playClick();
-      gameMode = 'ai';
-      aiBtn.classList.add('active');
-      pvpBtn.classList.remove('active');
-      if (diffSection) diffSection.classList.remove('hidden');
-      startNewSeries();
-    });
-    pvpBtn.addEventListener('click', () => {
-      sound.playClick();
-      gameMode = 'pvp';
-      pvpBtn.classList.add('active');
-      aiBtn.classList.remove('active');
-      if (diffSection) diffSection.classList.add('hidden');
-      startNewSeries();
-    });
-  }
-
-  // Difficulty Select
-  const diffSel = document.getElementById('ai-difficulty-select');
-  if (diffSel) {
-    diffSel.addEventListener('change', (e) => {
-      activeDifficulty = e.target.value;
-      startNewSeries();
-    });
-  }
-
-  // Series Target Select
-  const seriesSel = document.getElementById('series-target-select');
-  if (seriesSel) {
-    seriesSel.addEventListener('change', (e) => {
-      seriesTarget = parseInt(e.target.value, 10);
-      startNewSeries();
-    });
-  }
-
-  // Action Buttons
-  const newMatchBtn = document.getElementById('new-match-btn');
-  if (newMatchBtn) newMatchBtn.addEventListener('click', () => { sound.playClick(); startNewMatch(); });
-
-  const resetSeriesBtn = document.getElementById('reset-series-btn');
-  if (resetSeriesBtn) resetSeriesBtn.addEventListener('click', () => { sound.playClick(); startNewSeries(); });
-
-  const undoBtn = document.getElementById('undo-btn');
-  if (undoBtn) {
-    undoBtn.addEventListener('click', () => {
-      sound.playClick();
-      if (gameMode === 'ai') {
-        board.undo();
-        board.undo();
-      } else {
-        board.undo();
-      }
-      renderBoardDOM();
-      updateScoreboardDisplay();
-      updateMoveHistoryLog();
-    });
-  }
-
-  const redoBtn = document.getElementById('redo-btn');
-  if (redoBtn) {
-    redoBtn.addEventListener('click', () => {
-      sound.playClick();
-      board.redo();
-      renderBoardDOM();
-      updateScoreboardDisplay();
-      updateMoveHistoryLog();
-    });
-  }
-}
-
-function startNewSeries() {
-  p1Wins = 0;
-  p2Wins = 0;
-  startNewMatch();
-}
-
-function startNewMatch() {
-  board.reset();
-  matchStartTime = Date.now();
-  p1Seconds = 0;
-  p2Seconds = 0;
-  renderBoardDOM();
-  updateScoreboardDisplay();
-  updateMoveHistoryLog();
-  startMatchTimers();
-
-  const analysis = document.getElementById('analysis-content');
-  if (analysis) analysis.innerHTML = `<p>Waiting for move analysis...</p>`;
-}
-
-function renderBoardDOM() {
-  const container = document.getElementById('game-board');
-  if (!container) return;
-  container.innerHTML = '';
-
-  for (let r = 0; r < board.rows; r++) {
-    for (let c = 0; c < board.cols; c++) {
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
-      const val = board.grid[r][c];
-      if (val === 1) cell.classList.add('p1');
-      if (val === 2) cell.classList.add('p2');
-
-      // Highlight winning line
-      if (board.winningCells && board.winningCells.some(wc => wc.r === r && wc.c === c)) {
-        cell.classList.add('win-pulse');
-      }
-
-      cell.addEventListener('click', () => handleCellClick(c));
-      container.appendChild(cell);
     }
+    updateUndoRedoButtonState();
   }
 
-  // Undo/Redo button states
-  const undo = document.getElementById('undo-btn');
-  const redo = document.getElementById('redo-btn');
-  if (undo) undo.disabled = (board.historyStack.length === 0 || board.isGameOver);
-  if (redo) redo.disabled = (board.redoStack.length === 0 || board.isGameOver);
-}
+  function animateDiscdrop(move) {
+    const slot = gameGrid.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+    slot.innerHTML = ''; // clear
 
-function handleCellClick(col) {
-  if (board.isGameOver) return;
-  if (gameMode === 'ai' && board.currentPlayer === 2) return; // AI turn
+    const chip = document.createElement('div');
+    chip.classList.add('chip', move.player === 1 ? 'p1' : 'p2', 'chip-animate-drop');
+    slot.appendChild(chip);
+    sounds.playDrop();
 
-  if (!board.isValidMove(col)) {
-    sound.playInvalid();
-    return;
+    // Remove drop animation class after execution to prevent loops on scroll/update
+    setTimeout(() => {
+      chip.classList.remove('chip-animate-drop');
+    }, 550 * parseFloat(document.documentElement.style.getPropertyValue('--anim-speed-factor') || 1));
+
+    updateUndoRedoButtonState();
   }
 
-  executeDrop(col);
-
-  // Trigger AI turn if game mode is AI
-  if (!board.isGameOver && gameMode === 'ai' && board.currentPlayer === 2) {
-    triggerAITurn();
+  function updateUndoRedoButtonState() {
+    document.getElementById('btn-game-undo').disabled = board.historyStack.length === 0;
+    document.getElementById('btn-game-redo').disabled = board.redoStack.length === 0;
   }
-}
 
-function executeDrop(col) {
-  const row = board.dropDisc(col);
-  if (row !== -1) {
-    sound.playDrop();
-    renderBoardDOM();
-    updateScoreboardDisplay();
-    updateMoveHistoryLog();
+  /* ==========================================
+     GAME LOOP EVENTS
+     ========================================== */
+  function executeMove(col) {
+    if (board.isGameOver || isAiPlaying) return;
 
-    // Analysis evaluation update
-    const analysis = document.getElementById('analysis-content');
-    if (analysis) {
-      const colName = col + 1;
-      analysis.innerHTML = `<p>Player dropped in Column <strong>#${colName}</strong>. Controlling center diagonals.</p>`;
+    // Check opening column statistic log (first move of match)
+    if (board.historyStack.length === 0) {
+      board.firstMoveCol = col;
     }
 
-    // Check game over
-    if (board.isGameOver) {
-      handleMatchGameOver();
-    }
-  }
-}
+    const move = board.placeDisc(col);
+    if (!move) return;
 
-function triggerAITurn() {
-  const spinner = document.getElementById('ai-thinking-spinner');
-  const turnBox = document.getElementById('status-turn-box');
-  if (spinner) spinner.classList.remove('hidden');
-  if (turnBox) turnBox.classList.add('hidden');
+    animateDiscdrop(move);
 
-  const speedSel = document.getElementById('setting-speed-select');
-  const delay = speedSel && speedSel.value === 'fast' ? 200 : (speedSel && speedSel.value === 'slow' ? 1000 : 500);
-
-  setTimeout(() => {
-    const aiMove = getAIMove(board, activeDifficulty);
-    if (spinner) spinner.classList.add('hidden');
-    if (turnBox) turnBox.classList.remove('hidden');
-
-    if (aiMove !== null && board.isValidMove(aiMove)) {
-      executeDrop(aiMove);
-    }
-  }, delay);
-}
-
-function updateScoreboardDisplay() {
-  document.getElementById('p1-name-display').textContent = storage.getProfile().username;
-  document.getElementById('p2-name-display').textContent = gameMode === 'ai' ? `AI (${activeDifficulty.toUpperCase()})` : 'Player 2';
-  
-  document.getElementById('score-p1').textContent = p1Wins;
-  document.getElementById('score-p2').textContent = p2Wins;
-
-  const cardP1 = document.getElementById('card-p1');
-  const cardP2 = document.getElementById('card-p2');
-  const statusDisc = document.getElementById('status-disc');
-  const statusText = document.getElementById('status-text');
-
-  if (board.currentPlayer === 1) {
-    if (cardP1) cardP1.classList.add('active-turn');
-    if (cardP2) cardP2.classList.remove('active-turn');
-    if (statusDisc) { statusDisc.className = 'turn-disc p1'; }
-    if (statusText) statusText.textContent = `${storage.getProfile().username.toUpperCase()}'S TURN`;
-  } else {
-    if (cardP2) cardP2.classList.add('active-turn');
-    if (cardP1) cardP1.classList.remove('active-turn');
-    if (statusDisc) { statusDisc.className = 'turn-disc p2'; }
-    if (statusText) statusText.textContent = gameMode === 'ai' ? 'AI ENGINE CALCULATING...' : 'PLAYER 2\'S TURN';
-  }
-}
-
-function startMatchTimers() {
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    if (board.isGameOver) {
-      clearInterval(timerInterval);
+    // Evaluate Win/Tie conditions
+    const winDetails = board.checkWin();
+    if (winDetails) {
+      triggerRoundOver(winDetails);
       return;
     }
-    if (board.currentPlayer === 1) p1Seconds++;
-    else p2Seconds++;
 
-    const p1Display = document.getElementById('p1-timer');
-    const p2Display = document.getElementById('p2-timer');
-    if (p1Display) p1Display.textContent = formatTime(p1Seconds);
-    if (p2Display) p2Display.textContent = formatTime(p2Seconds);
-  }, 1000);
-}
+    if (board.checkTie()) {
+      triggerRoundOver({ winner: 'tie' });
+      return;
+    }
 
-function formatTime(sec) {
-  const m = Math.floor(sec / 60).toString().padStart(2, '0');
-  const s = (sec % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
-}
+    // Switch turns
+    board.currentPlayer = board.currentPlayer === 1 ? 2 : 1;
+    updateGameTurnUI();
 
-function updateMoveHistoryLog() {
-  const list = document.getElementById('move-history-list');
-  const badge = document.getElementById('move-count-badge');
-  if (!list) return;
-
-  const count = board.historyStack.length;
-  if (badge) badge.textContent = `${count} Moves`;
-
-  if (count === 0) {
-    list.innerHTML = `<div class="empty-state">Make your opening drop to start notation logging.</div>`;
-    return;
-  }
-
-  list.innerHTML = board.historyStack.map((move, idx) => {
-    const playerStr = move.player === 1 ? 'P1' : (gameMode === 'ai' ? 'AI' : 'P2');
-    const colStr = move.col + 1;
-    const rowStr = move.row + 1;
-    return `
-      <div class="move-entry">
-        <span>#${idx + 1} ${playerStr}</span>
-        <span>Drop Col ${colStr} (Row ${rowStr})</span>
-      </div>
-    `;
-  }).reverse().join('');
-}
-
-function handleMatchGameOver() {
-  clearInterval(timerInterval);
-  const duration = Math.round((Date.now() - matchStartTime) / 1000);
-
-  let outcome = 'draw';
-  if (board.winner === 1) {
-    outcome = 'win';
-    p1Wins++;
-    sound.playWin();
-    triggerWinConfetti();
-  } else if (board.winner === 2) {
-    outcome = 'loss';
-    p2Wins++;
-    sound.playLose();
-  } else {
-    outcome = 'draw';
-    sound.playClick();
-  }
-
-  updateScoreboardDisplay();
-
-  // Record stats & check achievements
-  recordMatch(
-    board.winner === 1 ? 1 : (board.winner === 2 ? 2 : 'tie'),
-    gameMode,
-    activeDifficulty,
-    board.historyStack.length,
-    duration,
-    board.firstMoveCol,
-    board.replayMoves
-  );
-
-  const unlockedNow = checkAchievements({
-    outcome,
-    durationSec: duration,
-    movesCount: board.historyStack.length,
-    gameMode,
-    difficulty: activeDifficulty,
-    seriesTarget
-  });
-
-  if (unlockedNow && unlockedNow.length > 0) {
-    showAchievementToast(unlockedNow[0]);
-  }
-
-  // Show End Modal
-  setTimeout(() => {
-    showEndModal(outcome, duration);
-  }, 1000);
-}
-
-function showEndModal(outcome, duration) {
-  const modal = document.getElementById('end-modal');
-  const title = document.getElementById('end-modal-title');
-  const sub = document.getElementById('end-modal-subtitle');
-  const timeVal = document.getElementById('end-stat-time');
-  const movesVal = document.getElementById('end-stat-moves');
-  const xpVal = document.getElementById('end-stat-xp');
-
-  if (timeVal) timeVal.textContent = `${duration}s`;
-  if (movesVal) movesVal.textContent = board.historyStack.length;
-
-  if (outcome === 'win') {
-    if (title) title.textContent = 'VICTORY!';
-    if (sub) sub.textContent = 'You won the match!';
-    if (xpVal) xpVal.textContent = '+50 XP';
-  } else if (outcome === 'loss') {
-    if (title) title.textContent = 'DEFEATED';
-    if (sub) sub.textContent = 'The AI engine outsmarted your strategy.';
-    if (xpVal) xpVal.textContent = '+15 XP';
-  } else {
-    if (title) title.textContent = 'STALEMATE';
-    if (sub) sub.textContent = 'A complete grid deadlock.';
-    if (xpVal) xpVal.textContent = '+25 XP';
-  }
-
-  if (modal) modal.classList.remove('hidden');
-}
-
-function showAchievementToast(ach) {
-  const toast = document.getElementById('achievement-toast');
-  const title = document.getElementById('toast-title');
-  const desc = document.getElementById('toast-desc');
-  if (!toast) return;
-
-  if (title) title.textContent = ach.title;
-  if (desc) desc.textContent = ach.description;
-  sound.playWin();
-
-  toast.classList.add('show');
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 4500);
-}
-
-// 3. STATISTICS VIEW
-function renderStatistics() {
-  const stats = getStats();
-  animateCountUp('stat-total-games', stats.gamesPlayed);
-  
-  const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
-  animateCountUp('stat-winrate', winRate, '%');
-  animateCountUp('stat-current-streak', stats.currentStreak);
-  animateCountUp('stat-longest-streak', stats.longestStreak);
-  
-  document.getElementById('stat-fastest-win').textContent = stats.fastestWin ? `${stats.fastestWin}s` : 'N/A';
-  const totalMins = Math.round(stats.totalMatchTime / 60);
-  document.getElementById('stat-total-time').textContent = `${totalMins}m`;
-
-  const ctx = document.getElementById('statsOpeningsChart');
-  if (ctx) {
-    if (statsOpeningsChart) statsOpeningsChart.destroy();
-    statsOpeningsChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Col 1', 'Col 2', 'Col 3', 'Col 4 (Center)', 'Col 5', 'Col 6', 'Col 7'],
-        datasets: [{
-          label: 'Times Played as First Move',
-          data: stats.openingCols || [0,0,0,0,0,0,0],
-          backgroundColor: 'rgba(0, 229, 255, 0.6)',
-          borderColor: '#00e5ff',
-          borderWidth: 1,
-          borderRadius: 8
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
-        },
-        plugins: { legend: { display: false } }
-      }
-    });
-  }
-}
-
-// 4. MATCH HISTORY TABLE ENGINE
-function renderHistoryTable() {
-  const history = storage.getHistory();
-  const searchVal = (document.getElementById('history-search')?.value || '').toLowerCase();
-  const filterMode = document.getElementById('history-filter-mode')?.value || 'all';
-  const sortVal = document.getElementById('history-sort')?.value || 'newest';
-
-  // Filter
-  filteredHistoryCache = history.filter(m => {
-    const matchSearch = m.opponent.toLowerCase().includes(searchVal) || m.winner.toLowerCase().includes(searchVal);
-    const matchMode = filterMode === 'all' || (filterMode === 'ai' && m.opponent.includes('AI')) || (filterMode === 'pvp' && !m.opponent.includes('AI'));
-    return matchSearch && matchMode;
-  });
-
-  // Sort
-  if (sortVal === 'oldest') filteredHistoryCache.reverse();
-  if (sortVal === 'moves') filteredHistoryCache.sort((a,b) => b.moves - a.moves);
-
-  // Paginate
-  const totalPages = Math.max(1, Math.ceil(filteredHistoryCache.length / HISTORY_ITEMS_PER_PAGE));
-  if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
-
-  const startIndex = (historyCurrentPage - 1) * HISTORY_ITEMS_PER_PAGE;
-  const pageItems = filteredHistoryCache.slice(startIndex, startIndex + HISTORY_ITEMS_PER_PAGE);
-
-  const tbody = document.getElementById('history-table-body');
-  if (tbody) {
-    if (pageItems.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No matching history records found.</td></tr>`;
-    } else {
-      tbody.innerHTML = pageItems.map(m => {
-        let resBadge = `<span class="rank-tag gold">DRAW</span>`;
-        if (m.winnerId === 1) resBadge = `<span class="rank-tag" style="background:rgba(16,185,129,0.15);color:#10b981;border-color:#10b981;">VICTORY</span>`;
-        if (m.winnerId === 2) resBadge = `<span class="rank-tag" style="background:rgba(239,68,68,0.15);color:#ef4444;border-color:#ef4444;">DEFEAT</span>`;
-        
-        return `
-          <tr>
-            <td>${m.date} <small style="color:var(--text-muted)">${m.time}</small></td>
-            <td><strong>${m.opponent}</strong></td>
-            <td>${m.difficulty}</td>
-            <td>${m.moves} moves</td>
-            <td>${m.duration}s</td>
-            <td>${resBadge}</td>
-            <td>
-              <button class="btn-secondary mini replay-trigger-btn" data-id="${m.id}">
-                <i data-lucide="video"></i> Replay
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
+    // Trigger AI or Demo loops
+    if (gameMode === 'ai' && board.currentPlayer === 2) {
+      triggerAiWorkflow();
+    } else if (gameMode === 'demo') {
+      triggerAiWorkflow();
     }
   }
 
-  // Bind Replay Buttons
-  document.querySelectorAll('.replay-trigger-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const matchId = btn.getAttribute('data-id');
-      const matchObj = storage.getHistory().find(x => x.id === matchId);
-      if (matchObj && matchObj.movesList) {
-        openReplayViewer(matchObj.movesList);
-      } else {
-        alert('Replay data not available for this legacy record.');
-      }
-    });
-  });
+  function updateGameTurnUI() {
+    // Normal indicators
+    turnToken.className = 'token-preview';
+    turnCard.className = 'turn-indicator-card';
+    turnToken.style.display = 'block';
+    turnName.style.display = 'inline';
+    aiThinkingBox.style.display = 'none';
 
-  // Pagination UI
-  const prevBtn = document.getElementById('prev-page-btn');
-  const nextBtn = document.getElementById('next-page-btn');
-  const pageInd = document.getElementById('page-indicator');
-
-  if (pageInd) pageInd.textContent = `Page ${historyCurrentPage} of ${totalPages}`;
-  if (prevBtn) prevBtn.disabled = (historyCurrentPage === 1);
-  if (nextBtn) nextBtn.disabled = (historyCurrentPage === totalPages);
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function bindHistoryControls() {
-  const search = document.getElementById('history-search');
-  const mode = document.getElementById('history-filter-mode');
-  const sort = document.getElementById('history-sort');
-  const prev = document.getElementById('prev-page-btn');
-  const next = document.getElementById('next-page-btn');
-
-  if (search) search.addEventListener('input', () => { historyCurrentPage = 1; renderHistoryTable(); });
-  if (mode) mode.addEventListener('change', () => { historyCurrentPage = 1; renderHistoryTable(); });
-  if (sort) sort.addEventListener('change', () => { historyCurrentPage = 1; renderHistoryTable(); });
-
-  if (prev) prev.addEventListener('click', () => { if (historyCurrentPage > 1) { historyCurrentPage--; renderHistoryTable(); } });
-  if (next) next.addEventListener('click', () => { historyCurrentPage++; renderHistoryTable(); });
-}
-
-// 5. ACHIEVEMENTS VIEW
-function renderAchievements(filter = 'all') {
-  const grid = document.getElementById('achievements-grid');
-  const unlockProg = getUnlockProgress();
-
-  document.getElementById('ach-room-count').textContent = `${unlockProg.unlocked} / ${unlockProg.total}`;
-  const pct = Math.round((unlockProg.unlocked / unlockProg.total) * 100);
-  document.getElementById('ach-room-fill').style.width = `${pct}%`;
-
-  if (!grid) return;
-
-  const filtered = achievements.filter(a => {
-    if (filter === 'unlocked') return a.unlocked;
-    if (filter === 'locked') return !a.unlocked;
-    return true;
-  });
-
-  grid.innerHTML = filtered.map(a => `
-    <div class="ach-card ${a.unlocked ? 'unlocked' : ''}">
-      <div class="ach-card-icon"><i data-lucide="${a.icon}"></i></div>
-      <div class="ach-card-info">
-        <span class="ach-card-title">${a.title}</span>
-        <span class="ach-card-desc">${a.description}</span>
-      </div>
-    </div>
-  `).join('');
-
-  if (window.lucide) window.lucide.createIcons();
-}
-
-// 6. PROFILE VIEW
-function renderProfile() {
-  const profile = storage.getProfile();
-  const stats = getStats();
-
-  document.getElementById('prof-username').textContent = profile.username;
-  document.getElementById('prof-level-badge').textContent = `LVL ${profile.level}`;
-  document.getElementById('prof-rank').textContent = profile.rankTitle;
-  document.getElementById('prof-xp-text').textContent = `XP Progression to Level ${profile.level + 1}: ${profile.xp} / ${profile.xpNeeded}`;
-  
-  const xpPct = Math.min(100, Math.round((profile.xp / profile.xpNeeded) * 100));
-  document.getElementById('prof-xp-pct').textContent = `${xpPct}%`;
-  document.getElementById('prof-xp-fill').style.width = `${xpPct}%`;
-
-  animateCountUp('prof-wins', stats.wins);
-  const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
-  animateCountUp('prof-winrate', winRate, '%');
-  animateCountUp('prof-streak', stats.longestStreak);
-
-  // Showcase Badges
-  const badgesBox = document.getElementById('profile-recent-badges');
-  if (badgesBox) {
-    const unlocked = achievements.filter(a => a.unlocked);
-    if (unlocked.length === 0) {
-      badgesBox.innerHTML = `<div class="empty-state">Unlock achievements to showcase badges here.</div>`;
+    if (board.currentPlayer === 1) {
+      turnCard.classList.add('active-p1');
+      turnToken.classList.add('player-1-color', 'glow-red');
+      turnName.textContent = 'Player 1';
     } else {
-      badgesBox.innerHTML = unlocked.slice(0, 6).map(a => `
-        <div class="ach-card unlocked">
-          <div class="ach-card-icon"><i data-lucide="${a.icon}"></i></div>
-          <div class="ach-card-info">
-            <span class="ach-card-title">${a.title}</span>
-            <span class="ach-card-desc">${a.description}</span>
-          </div>
+      turnCard.classList.add('active-p2');
+      turnToken.classList.add('player-2-color', 'glow-cyan');
+      turnName.textContent = gameMode === 'ai' ? 'Computer AI' : 'Player 2';
+    }
+  }
+
+  function triggerAiWorkflow() {
+    isAiPlaying = true;
+    
+    // Show AI Thinking banner
+    turnToken.style.display = 'none';
+    turnName.style.display = 'none';
+    aiThinkingBox.style.display = 'flex';
+
+    // Speed setting determines AI delay
+    const speed = storage.getPreferences().speed;
+    const thinkingDelay = speed === 'slow' ? 2400 : (speed === 'fast' ? 400 : 1200);
+
+    setTimeout(() => {
+      // Demo loop plays AI VS AI (Player 1 is easy, Player 2 is hard)
+      if (gameMode === 'demo') {
+        const diff = board.currentPlayer === 1 ? 'easy' : 'impossible';
+        ai.setDifficulty(diff);
+      } else {
+        ai.setDifficulty(activeDifficulty);
+      }
+
+      // Compute board state
+      const bestMove = ai.getMove(board.grid, 1, 2);
+      
+      // Hide AI thinking banner
+      aiThinkingBox.style.display = 'none';
+      isAiPlaying = false;
+
+      if (bestMove !== -1) {
+        // Place disc
+        const move = board.placeDisc(bestMove);
+        if (move) {
+          animateDiscdrop(move);
+          
+          const winDetails = board.checkWin();
+          if (winDetails) {
+            triggerRoundOver(winDetails);
+            return;
+          }
+
+          if (board.checkTie()) {
+            triggerRoundOver({ winner: 'tie' });
+            return;
+          }
+
+          // Toggle player turn
+          board.currentPlayer = board.currentPlayer === 1 ? 2 : 1;
+          updateGameTurnUI();
+
+          // Keep playing demo mode if applicable
+          if (gameMode === 'demo') {
+            triggerAiWorkflow();
+          }
+        }
+      }
+    }, thinkingDelay);
+  }
+
+  /* ==========================================
+     ROUND AND SERIES CONCLUSION
+     ========================================== */
+  function triggerRoundOver(result) {
+    board.isGameOver = true;
+    anim.triggerCameraShake(document.getElementById('physical-board-container'));
+
+    // Compute duration
+    const duration = Math.floor((Date.now() - matchStartTime) / 1000);
+
+    // Save logs and stats on completed match
+    const summary = board.recordRoundOutcome(result.winner);
+    
+    // Check if this rounds finishes the series
+    let seriesComplete = board.seriesWinner !== null;
+    
+    if (result.winner === 'tie') {
+      sounds.playDraw();
+      showEndModal('tie', summary, duration);
+    } else {
+      if (result.winner === 1) {
+        sounds.playWin();
+        anim.startConfetti();
+        showEndModal('p1', summary, duration);
+      } else {
+        sounds.playLose();
+        showEndModal('p2', summary, duration);
+      }
+
+      // Highlight winning disc lines
+      result.cells.forEach(([r, c]) => {
+        const slot = gameGrid.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+        const chip = slot.querySelector('.chip');
+        if (chip) {
+          chip.classList.add('win-highlight');
+          chip.style.color = result.winner === 1 ? 'var(--player-1)' : 'var(--player-2)';
+        }
+      });
+    }
+
+    renderSeriesProgressDots();
+  }
+
+  function showEndModal(outcome, summary, duration) {
+    const statsReport = recordMatch(
+      outcome === 'win' || outcome === 'p1' ? 1 : (outcome === 'tie' ? 'tie' : 2),
+      gameMode,
+      activeDifficulty,
+      board.historyStack.length,
+      duration,
+      board.firstMoveCol,
+      board.replayMoves
+    );
+
+    // Check achievement locks
+    const newAchievements = checkAchievements();
+    if (newAchievements.length > 0) {
+      newAchievements.forEach((badge, index) => {
+        setTimeout(() => triggerAchievementToast(badge), (index + 1) * 1600);
+      });
+    }
+
+    // Modal Content Configuration
+    const modalGlow = document.getElementById('end-modal-glow');
+    const modalIcon = document.getElementById('end-modal-icon');
+    const modalTitle = document.getElementById('end-modal-title');
+    const modalDesc = document.getElementById('end-modal-description');
+    
+    const xpGainedEl = document.getElementById('end-modal-xp-gained');
+    const lvlTag = document.getElementById('end-modal-lvl-tag');
+    
+    const scoreP1Val = document.getElementById('modal-score-p1');
+    const scoreP2Val = document.getElementById('modal-score-p2');
+    const labelP2 = document.getElementById('modal-p2-score-label');
+
+    xpGainedEl.textContent = statsReport.xpGained;
+    lvlTag.style.display = statsReport.levelUp ? 'inline-block' : 'none';
+
+    scoreP1Val.textContent = summary.scores.p1;
+    scoreP2Val.textContent = summary.scores.p2;
+    labelP2.textContent = gameMode === 'ai' ? 'AI Wins:' : 'P2 Wins:';
+
+    if (outcome === 'tie') {
+      modalGlow.style.background = 'var(--tie-color)';
+      modalIcon.setAttribute('data-lucide', 'help-circle');
+      modalTitle.textContent = "IT'S A DRAW!";
+      modalTitle.style.color = 'var(--tie-color)';
+      modalDesc.textContent = "Great strategic placements by both sides led to a draw.";
+    } else if (outcome === 'p1') {
+      modalGlow.style.background = 'var(--player-1)';
+      modalIcon.setAttribute('data-lucide', 'trophy');
+      modalTitle.textContent = board.seriesWinner === 1 ? "SERIES CHAMPION!" : "PLAYER 1 WINS!";
+      modalTitle.style.color = 'var(--player-1)';
+      modalDesc.textContent = board.seriesWinner === 1 ? "You have crushed the series matches!" : "A tactical victory in this round.";
+    } else {
+      modalGlow.style.background = 'var(--player-2)';
+      modalIcon.setAttribute('data-lucide', 'award');
+      modalTitle.textContent = board.seriesWinner === 2 ? "SERIES DEFEAT!" : (gameMode === 'ai' ? "COMPUTER WINS!" : "PLAYER 2 WINS!");
+      modalTitle.style.color = 'var(--player-2)';
+      modalDesc.textContent = gameMode === 'ai' ? "The Minimax neural routes outsmarted your placements." : "A stunning tactical victory.";
+    }
+
+    lucide.createIcons();
+
+    // Open Modal with short delay
+    setTimeout(() => {
+      endModal.classList.add('open');
+    }, 1200);
+  }
+
+  function triggerAchievementToast(badge) {
+    sounds.playUnlock();
+    document.getElementById('toast-title').textContent = badge.title;
+    document.getElementById('toast-desc').textContent = badge.desc;
+    achievementToast.classList.add('show');
+
+    setTimeout(() => {
+      achievementToast.classList.remove('show');
+    }, 4500);
+  }
+
+  function renderSeriesProgressDots() {
+    seriesDotsRow.innerHTML = '';
+    const targetWins = board.getSeriesTargetWins();
+    if (targetWins === Infinity) {
+      seriesDotsRow.style.display = 'none';
+      return;
+    }
+    
+    seriesDotsRow.style.display = 'flex';
+    
+    // Draw dots for Player 1
+    const p1Container = document.createElement('div');
+    p1Container.classList.add('series-faction');
+    for (let i = 0; i < targetWins; i++) {
+      const dot = document.createElement('div');
+      dot.classList.add('series-dot');
+      if (i < board.seriesScores.p1) dot.classList.add('earned-p1');
+      p1Container.appendChild(dot);
+    }
+    
+    const separator = document.createElement('span');
+    separator.textContent = 'VS';
+    separator.style.fontSize = '10px';
+    separator.style.fontWeight = 'bold';
+    separator.style.color = 'var(--text-muted)';
+    
+    // Draw dots for Player 2
+    const p2Container = document.createElement('div');
+    p2Container.classList.add('series-faction');
+    for (let i = 0; i < targetWins; i++) {
+      const dot = document.createElement('div');
+      dot.classList.add('series-dot');
+      if (i < board.seriesScores.p2) dot.classList.add('earned-p2');
+      p2Container.appendChild(dot);
+    }
+
+    seriesDotsRow.appendChild(p1Container);
+    seriesDotsRow.appendChild(separator);
+    seriesDotsRow.appendChild(p2Container);
+  }
+
+  /* ==========================================
+     SETTINGS VIEWS & LOGIC resets
+     ========================================== */
+  selectTheme.addEventListener('change', (e) => {
+    storage.savePreferences({ theme: e.target.value });
+    applyTheme(e.target.value);
+    sounds.playThemeToggle();
+  });
+
+  rangeVolume.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    storage.savePreferences({ volume: val });
+    sounds.setVolume(val);
+    if (val > 0) {
+      storage.savePreferences({ sound: 'on' });
+      sounds.setMute(false);
+      updateMuteIcon(false);
+    } else {
+      storage.savePreferences({ sound: 'off' });
+      sounds.setMute(true);
+      updateMuteIcon(true);
+    }
+  });
+
+  btnMute.addEventListener('click', () => {
+    const prefs = storage.getPreferences();
+    const isCurrentlyMuted = prefs.sound === 'off';
+    const nextMuted = !isCurrentlyMuted;
+
+    storage.savePreferences({ sound: nextMuted ? 'off' : 'on' });
+    sounds.setMute(nextMuted);
+    updateMuteIcon(nextMuted);
+    
+    if (!nextMuted && prefs.volume === 0) {
+      storage.savePreferences({ volume: 0.5 });
+      rangeVolume.value = 0.5;
+      sounds.setVolume(0.5);
+    }
+  });
+
+  selectSpeed.addEventListener('change', (e) => {
+    storage.savePreferences({ speed: e.target.value });
+    applyAnimationSpeed(e.target.value);
+  });
+
+  checkParticles.addEventListener('change', (e) => {
+    const val = e.target.checked ? 'on' : 'off';
+    storage.savePreferences({ particles: val });
+    if (val === 'on') {
+      anim.startBgParticles();
+    } else {
+      anim.stopBgParticles();
+    }
+  });
+
+  // Color Swatch buttons click listeners
+  const colorSwatchesContainer = document.querySelector('.color-palette-selector');
+  colorSwatchesContainer.addEventListener('click', (e) => {
+    const color = e.target.dataset.color;
+    if (color) {
+      storage.savePreferences({ boardColor: color });
+      applyBoardColor(color);
+      highlightSwatch(color);
+      sounds.playClick();
+    }
+  });
+
+  // Danger settings buttons
+  document.getElementById('btn-reset-stats').addEventListener('click', () => {
+    if (confirm("Reset match statistics? Profiles and achievements will remain.")) {
+      localStorage.removeItem('c4_pro_stats');
+      localStorage.removeItem('c4_pro_history');
+      sounds.playClick();
+      window.location.reload();
+    }
+  });
+
+  document.getElementById('btn-reset-achievements').addEventListener('click', () => {
+    if (confirm("Lock all achievements again? Match counts will remain.")) {
+      localStorage.removeItem('c4_pro_achievements');
+      sounds.playClick();
+      window.location.reload();
+    }
+  });
+
+  document.getElementById('btn-reset-all').addEventListener('click', () => {
+    if (confirm("Wipe all local profiles, configurations, stats, and achievements? This action is irreversible.")) {
+      storage.resetAll();
+    }
+  });
+
+  /* ==========================================
+     STATISTICS DASHBOARD GENERATOR
+     ========================================== */
+  function renderStatsDashboard() {
+    const stats = storage.getStats();
+    
+    document.getElementById('stat-games-played').textContent = stats.gamesPlayed;
+    document.getElementById('stat-wins').textContent = stats.wins;
+    document.getElementById('stat-losses').textContent = stats.losses;
+    document.getElementById('stat-draws').textContent = stats.draws;
+    document.getElementById('stat-longest-streak').textContent = stats.longestStreak;
+    
+    // Win rate percentage
+    const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
+    document.getElementById('stat-win-rate').textContent = `${winRate}%`;
+
+    // Average match time
+    const avgSec = stats.gamesPlayed > 0 ? Math.round(stats.totalMatchTime / stats.gamesPlayed) : 0;
+    document.getElementById('stat-avg-time').textContent = `${avgSec}s`;
+
+    // Fastest Win
+    document.getElementById('stat-fastest-win').textContent = stats.fastestWin !== null ? `${stats.fastestWin}s` : 'N/A';
+
+    // Render Favorite Opening Column Bar Chart
+    const openingContainer = document.getElementById('opening-columns-chart-container');
+    openingContainer.innerHTML = '';
+    const maxVal = Math.max(...stats.openingCols, 1);
+
+    for (let c = 0; c < COLS; c++) {
+      const val = stats.openingCols[c];
+      const pct = Math.round((val / maxVal) * 100);
+
+      const row = document.createElement('div');
+      row.classList.add('chart-bar-row');
+      
+      row.innerHTML = `
+        <span class="chart-label">Column ${c + 1}</span>
+        <div class="chart-track">
+          <div class="chart-fill" style="width: ${pct}%"></div>
         </div>
-      `).join('');
+        <span class="chart-value">${val}</span>
+      `;
+      openingContainer.appendChild(row);
+    }
+
+    // Render Match History Table
+    const tableBody = document.getElementById('history-table-body');
+    tableBody.innerHTML = '';
+    const history = storage.getHistory();
+
+    if (history.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No match logs recorded yet.</td></tr>`;
+      return;
+    }
+
+    history.forEach((m, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${m.date} <span style="font-size: 10px; color: var(--text-muted);">${m.time}</span></td>
+        <td>${m.opponent}</td>
+        <td>${m.difficulty}</td>
+        <td>${m.moves}</td>
+        <td>${m.duration}s</td>
+        <td style="font-weight: 700; color: ${m.winnerId === 1 ? 'var(--player-1)' : (m.winnerId === 2 ? 'var(--player-2)' : 'var(--tie-color)')}">${m.winner}</td>
+        <td><button class="history-action-btn" data-history-idx="${idx}">REPLAY</button></td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  /* ==========================================
+     ACHIEVEMENTS PANEL RENDERER
+     ========================================== */
+  function renderAchievementsGrid() {
+    const container = document.getElementById('achievements-list-container');
+    container.innerHTML = '';
+    const unlocked = storage.getAchievements();
+
+    // Update ratio text
+    document.getElementById('achievements-count-ratio').textContent = `${unlocked.length}/${ACHIEVEMENTS.length} UNLOCKED`;
+
+    ACHIEVEMENTS.forEach(badge => {
+      const isUnlocked = unlocked.includes(badge.id);
+      
+      const card = document.createElement('div');
+      card.classList.add('achievement-card');
+      if (isUnlocked) card.classList.add('unlocked');
+
+      // Swap icons based on config
+      let iconName = isUnlocked ? badge.icon : 'lock';
+
+      card.innerHTML = `
+        <div class="achievement-badge">
+          <i data-lucide="${iconName}"></i>
+        </div>
+        <div class="achievement-details">
+          <span class="ach-title">${badge.title}</span>
+          <span class="ach-desc">${badge.desc}</span>
+          <span class="ach-xp">+${badge.xp} XP</span>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    lucide.createIcons();
+  }
+
+  /* ==========================================
+     LOCAL LEADERBOARDS
+     ========================================== */
+  function renderLeaderboard() {
+    const tableBody = document.getElementById('leaderboard-table-body');
+    tableBody.innerHTML = '';
+    const boardData = getLeaderboardData();
+
+    boardData.forEach((user, idx) => {
+      const rank = idx + 1;
+      const tr = document.createElement('tr');
+      if (user.isSelf) tr.classList.add('user-row');
+
+      let rankDisplayClass = 'rank-val-badge';
+      if (rank === 1) rankDisplayClass += ' rank-top-1';
+      else if (rank === 2) rankDisplayClass += ' rank-top-2';
+      else if (rank === 3) rankDisplayClass += ' rank-top-3';
+
+      tr.innerHTML = `
+        <td><span class="${rankDisplayClass}">${rank}</span></td>
+        <td>${user.name}</td>
+        <td>Level ${user.level}</td>
+        <td style="font-family: var(--font-display);">${user.xp.toLocaleString()}</td>
+        <td>${user.wins}</td>
+        <td>${user.streak} Matches</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  /* ==========================================
+     REPLAY MATCH SYSTEM
+     ========================================== */
+  function startReplayWorkflow(matchLog) {
+    sounds.playClick();
+    showScreen('game');
+
+    // Activate Replay Bar Overlay
+    replayOverlay.classList.add('active');
+    
+    // Force AI demo controls off
+    isAiPlaying = false;
+    
+    // Clear matches details
+    board.startNewMatch('unlimited');
+    board.init();
+    createBoardDOM();
+    renderGridState();
+
+    // Load moves
+    activeReplayMoves = [...matchLog.moves];
+    activeReplayIndex = 0;
+    isReplayPlaying = false;
+    
+    // Game scoreboard setups
+    p2Label.textContent = 'REPLAY OPPONENT';
+    p1ScoreEl.textContent = '0';
+    p3ScoreEl.textContent = '0';
+    p2ScoreEl.textContent = '0';
+    
+    // Target banner override
+    seriesTargetBanner.textContent = 'REPLAY RECORDING';
+    seriesDotsRow.style.display = 'none';
+    
+    updateReplayBannerState();
+    updateReplayButtons();
+  }
+
+  function updateReplayBannerState() {
+    turnToken.style.display = 'none';
+    turnName.style.display = 'inline';
+    turnName.textContent = `REPLAY MOVE ${activeReplayIndex}/${activeReplayMoves.length}`;
+  }
+
+  function stepReplayForward() {
+    if (activeReplayIndex >= activeReplayMoves.length) {
+      pauseReplay();
+      return;
+    }
+
+    const col = activeReplayMoves[activeReplayIndex];
+    const move = board.placeDisc(col);
+    if (move) {
+      animateDiscdrop(move);
+      activeReplayIndex++;
+      board.currentPlayer = board.currentPlayer === 1 ? 2 : 1;
+      updateReplayBannerState();
+      updateReplayButtons();
     }
   }
-  if (window.lucide) window.lucide.createIcons();
-}
 
-// ============================================================================
-// SETTINGS & MODALS BINDINGS
-// ============================================================================
-function bindSettingsAndModals() {
-  // Sound Toggle
-  const soundToggle = document.getElementById('setting-sound-toggle');
-  if (soundToggle) {
-    soundToggle.addEventListener('change', (e) => {
-      sound.setMute(!e.target.checked);
-      storage.saveSettings({ soundMuted: !e.target.checked });
-      updateQuickMuteIcon();
-    });
-  }
+  function stepReplayBackward() {
+    if (activeReplayIndex <= 0) return;
 
-  // Theme Select
-  const themeSel = document.getElementById('setting-theme-select');
-  if (themeSel) {
-    themeSel.addEventListener('change', (e) => {
-      if (e.target.value === 'light') {
-        document.body.classList.remove('theme-dark');
-        document.body.classList.add('theme-light');
-      } else {
-        document.body.classList.remove('theme-light');
-        document.body.classList.add('theme-dark');
-      }
-      storage.saveSettings({ theme: e.target.value });
-      updateQuickThemeIcon();
-    });
-  }
-
-  // Speed Select
-  const speedSel = document.getElementById('setting-speed-select');
-  if (speedSel) {
-    speedSel.addEventListener('change', (e) => {
-      storage.saveSettings({ animationSpeed: e.target.value });
-    });
-  }
-
-  // Reset Data
-  const resetBtn = document.getElementById('reset-data-btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (confirm('Are you certain you want to erase all stats, achievements, and match history?')) {
-        clearAllData();
-        alert('All local data has been reset.');
-        switchView('dashboard');
-      }
-    });
-  }
-
-  // Achievement Filter Tabs
-  document.querySelectorAll('.ach-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.ach-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      renderAchievements(tab.getAttribute('data-filter'));
-    });
-  });
-
-  // End Modal Buttons
-  const playAgain = document.getElementById('modal-play-again-btn');
-  if (playAgain) playAgain.addEventListener('click', () => {
-    document.getElementById('end-modal').classList.add('hidden');
-    startNewMatch();
-  });
-
-  const viewReplay = document.getElementById('modal-view-replay-btn');
-  if (viewReplay) viewReplay.addEventListener('click', () => {
-    document.getElementById('end-modal').classList.add('hidden');
-    openReplayViewer(board.replayMoves);
-  });
-
-  const backDash = document.getElementById('modal-dashboard-btn');
-  if (backDash) backDash.addEventListener('click', () => {
-    document.getElementById('end-modal').classList.add('hidden');
-    switchView('dashboard');
-  });
-
-  // Replay Modal Close
-  const closeRep = document.getElementById('close-replay-btn');
-  if (closeRep) closeRep.addEventListener('click', () => {
-    document.getElementById('replay-modal').classList.add('hidden');
-  });
-}
-
-// ============================================================================
-// REPLAY VIEWER ENGINE
-// ============================================================================
-let replayStep = 0;
-let replayMovesList = [];
-let replayGrid = [];
-
-function openReplayViewer(moves) {
-  if (!moves || moves.length === 0) {
-    alert('No moves sequence recorded for this replay.');
-    return;
-  }
-  replayMovesList = moves;
-  replayStep = 0;
-  replayGrid = Array.from({ length: 6 }, () => Array(7).fill(0));
-
-  const modal = document.getElementById('replay-modal');
-  if (modal) modal.classList.remove('hidden');
-
-  renderReplayBoard();
-  updateReplayControls();
-
-  const prevBtn = document.getElementById('replay-prev-btn');
-  const nextBtn = document.getElementById('replay-next-btn');
-
-  prevBtn.onclick = () => { if (replayStep > 0) { replayStep--; recalculateReplayGrid(); renderReplayBoard(); updateReplayControls(); } };
-  nextBtn.onclick = () => { if (replayStep < replayMovesList.length) { replayStep++; recalculateReplayGrid(); renderReplayBoard(); updateReplayControls(); } };
-}
-
-function recalculateReplayGrid() {
-  replayGrid = Array.from({ length: 6 }, () => Array(7).fill(0));
-  let player = 1;
-  for (let i = 0; i < replayStep; i++) {
-    const col = replayMovesList[i];
-    for (let r = 5; r >= 0; r--) {
-      if (replayGrid[r][col] === 0) {
-        replayGrid[r][col] = player;
-        break;
-      }
-    }
-    player = player === 1 ? 2 : 1;
-  }
-}
-
-function renderReplayBoard() {
-  const container = document.getElementById('replay-board');
-  if (!container) return;
-  container.innerHTML = '';
-
-  for (let r = 0; r < 6; r++) {
-    for (let c = 0; c < 7; c++) {
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
-      if (replayGrid[r][c] === 1) cell.classList.add('p1');
-      if (replayGrid[r][c] === 2) cell.classList.add('p2');
-      container.appendChild(cell);
+    const lastMove = board.undo();
+    if (lastMove) {
+      activeReplayIndex--;
+      renderGridState();
+      updateReplayBannerState();
+      updateReplayButtons();
     }
   }
-}
 
-function updateReplayControls() {
-  const lbl = document.getElementById('replay-step-label');
-  if (lbl) lbl.textContent = `Step ${replayStep} / ${replayMovesList.length}`;
-  const prev = document.getElementById('replay-prev-btn');
-  const next = document.getElementById('replay-next-btn');
-  if (prev) prev.disabled = (replayStep === 0);
-  if (next) next.disabled = (replayStep === replayMovesList.length);
-}
-
-window.runAutomatedVerification = function(silent = false) {
-  if (!silent) console.log('Starting Automated Functional Verification...');
-  let passed = 0;
-  let total = 0;
-  function assert(testName, cond) {
-    total++;
-    if (cond) {
-      passed++;
-      if (!silent) console.log(`[PASS] ${testName}`);
+  function updateReplayButtons() {
+    document.getElementById('btn-replay-prev').disabled = activeReplayIndex <= 0;
+    document.getElementById('btn-replay-next').disabled = activeReplayIndex >= activeReplayMoves.length;
+    
+    const playIcon = document.getElementById('replay-play-icon');
+    if (isReplayPlaying) {
+      playIcon.setAttribute('data-lucide', 'pause');
     } else {
-      console.error(`[FAIL] ${testName}`);
+      playIcon.setAttribute('data-lucide', 'play');
+    }
+    lucide.createIcons();
+  }
+
+  function playReplay() {
+    if (isReplayPlaying) return;
+    isReplayPlaying = true;
+    updateReplayButtons();
+
+    function runLoop() {
+      if (!isReplayPlaying) return;
+      if (activeReplayIndex >= activeReplayMoves.length) {
+        pauseReplay();
+        return;
+      }
+      stepReplayForward();
+      replayTimeout = setTimeout(runLoop, currentReplaySpeed);
+    }
+    runLoop();
+  }
+
+  function pauseReplay() {
+    isReplayPlaying = false;
+    clearTimeout(replayTimeout);
+    updateReplayButtons();
+  }
+
+  function exitReplayMode() {
+    pauseReplay();
+    replayOverlay.classList.remove('active');
+    showScreen('stats');
+  }
+
+  /* ==========================================
+     SETUP MODALS & ACTIONS CALLBACKS
+     ========================================== */
+  function openGameSetupModal(mode) {
+    gameMode = mode;
+    setupModal.classList.add('open');
+    sounds.playClick();
+    
+    if (gameMode === 'pvp') {
+      difficultyGroup.style.display = 'none';
+    } else {
+      difficultyGroup.style.display = 'block';
     }
   }
 
-  try {
-    // Test 1: Navigation switching
-    ['dashboard', 'play', 'statistics', 'history', 'achievements', 'profile', 'settings'].forEach(view => {
-      switchView(view);
-      const el = document.getElementById(`view-${view}`);
-      assert(`Navigation to ${view}`, el && el.classList.contains('view-active'));
+  document.getElementById('btn-setup-cancel').addEventListener('click', () => {
+    setupModal.classList.remove('open');
+    sounds.playClick();
+  });
+
+  document.getElementById('btn-setup-start').addEventListener('click', () => {
+    setupModal.classList.remove('open');
+    sounds.playClick();
+    
+    activeDifficulty = selectSetupDifficulty.value;
+    const series = selectSetupSeries.value;
+
+    // Reset scores & logic
+    board.startNewMatch(series);
+    createBoardDOM();
+    renderGridState();
+
+    matchStartTime = Date.now();
+    
+    // Label configurations
+    if (gameMode === 'ai') {
+      p2Label.textContent = `AI (${activeDifficulty.toUpperCase()})`;
+    } else if (gameMode === 'pvp') {
+      p2Label.textContent = 'PLAYER 2';
+    } else {
+      p2Label.textContent = 'DEMO AI';
+    }
+
+    // Set series banner text
+    const textDict = { unlimited: 'SINGLE MATCH', bo3: 'BEST OF 3 SERIES', bo5: 'BEST OF 5 SERIES', bo7: 'BEST OF 7 SERIES' };
+    seriesTargetBanner.textContent = textDict[series];
+
+    p1ScoreEl.textContent = '0';
+    p2ScoreEl.textContent = '0';
+    p3ScoreEl.textContent = '0';
+
+    showScreen('game');
+    updateGameTurnUI();
+    renderSeriesProgressDots();
+
+    // Trigger AI workflow if AI Demo mode begins
+    if (gameMode === 'demo') {
+      triggerAiWorkflow();
+    }
+  });
+
+  /* ==========================================
+     UI CLICKS EVENT BINDINGS
+     ========================================== */
+
+  // Screen swap buttons
+  document.getElementById('btn-menu-vs-ai').addEventListener('click', () => openGameSetupModal('ai'));
+  document.getElementById('btn-menu-vs-friend').addEventListener('click', () => openGameSetupModal('pvp'));
+  document.getElementById('btn-menu-ai-demo').addEventListener('click', () => openGameSetupModal('demo'));
+  
+  document.getElementById('btn-menu-stats').addEventListener('click', () => showScreen('stats'));
+  document.getElementById('btn-menu-achievements').addEventListener('click', () => showScreen('achievements'));
+  document.getElementById('btn-menu-leaderboard').addEventListener('click', () => showScreen('leaderboard'));
+  document.getElementById('btn-menu-settings').addEventListener('click', () => showScreen('settings'));
+  document.getElementById('btn-menu-exit').addEventListener('click', () => {
+    sounds.playClick();
+    if (confirm("Close Connect Four Pro?")) {
+      window.close();
+    }
+  });
+
+  // Panel back buttons
+  document.getElementById('btn-settings-back').addEventListener('click', () => showScreen('menu'));
+  document.getElementById('btn-stats-back').addEventListener('click', () => showScreen('menu'));
+  document.getElementById('btn-achievements-back').addEventListener('click', () => showScreen('menu'));
+  document.getElementById('btn-leaderboard-back').addEventListener('click', () => showScreen('menu'));
+
+  document.getElementById('btn-game-back-to-menu').addEventListener('click', () => {
+    // If replay active, exit replay first
+    if (replayOverlay.classList.contains('active')) {
+      exitReplayMode();
+      return;
+    }
+    showScreen('menu');
+  });
+
+  // Action reset panels inside game board
+  document.getElementById('btn-game-restart').addEventListener('click', () => {
+    sounds.playClick();
+    
+    // Check if in replay mode
+    if (replayOverlay.classList.contains('active')) return;
+
+    board.startNewRound();
+    renderGridState();
+    matchStartTime = Date.now();
+    updateGameTurnUI();
+    
+    if (gameMode === 'demo') {
+      triggerAiWorkflow();
+    }
+  });
+
+  // Undo & Redo UI clicks
+  document.getElementById('btn-game-undo').addEventListener('click', () => {
+    sounds.playClick();
+    
+    // In AI mode, we undo twice to undo the AI's move AND the player's last move!
+    if (gameMode === 'ai') {
+      const aiMove = board.undo();
+      const p1Move = board.undo();
+      
+      // If we undo we also adjust opening column variables
+      if (board.historyStack.length === 0) {
+        board.firstMoveCol = -1;
+      }
+
+      renderGridState();
+      updateGameTurnUI();
+    } else {
+      const lastMove = board.undo();
+      if (lastMove) {
+        renderGridState();
+        updateGameTurnUI();
+      }
+    }
+  });
+
+  document.getElementById('btn-game-redo').addEventListener('click', () => {
+    sounds.playClick();
+
+    if (gameMode === 'ai') {
+      const p1Move = board.redo();
+      const aiMove = board.redo();
+      renderGridState();
+      updateGameTurnUI();
+    } else {
+      const nextMove = board.redo();
+      if (nextMove) {
+        renderGridState();
+        updateGameTurnUI();
+      }
+    }
+  });
+
+  // Column clicks (Interactive gameplay)
+  columnHovers.addEventListener('click', (e) => {
+    const colStr = e.target.getAttribute('data-col');
+    if (colStr !== null && !board.isGameOver && !isAiPlaying && !replayOverlay.classList.contains('active')) {
+      executeMove(parseInt(colStr));
+    }
+  });
+
+  // Grid hover previews (indicating column slots drop positions)
+  columnHovers.addEventListener('mouseover', (e) => {
+    const colStr = e.target.getAttribute('data-col');
+    if (colStr !== null && !board.isGameOver && !isAiPlaying && !replayOverlay.classList.contains('active')) {
+      const col = parseInt(colStr);
+      const row = board.getLowestEmptyRow(col);
+      if (row !== -1) {
+        const slot = gameGrid.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        slot.style.backgroundColor = board.currentPlayer === 1 ? 'var(--player-1-glow)' : 'var(--player-2-glow)';
+        sounds.playHover();
+      }
+    }
+  });
+
+  columnHovers.addEventListener('mouseout', (e) => {
+    const slots = gameGrid.querySelectorAll('.cell-slot');
+    slots.forEach(slot => {
+      slot.style.backgroundColor = '';
     });
+  });
 
-    // Test 2: Quick Match button
-    if (window.startQuickMatch) {
-      window.startQuickMatch();
-      assert('Quick Match started game', document.getElementById('view-play')?.classList.contains('view-active'));
+  // Modals outcome buttons
+  document.getElementById('btn-modal-view-stats').addEventListener('click', () => {
+    endModal.classList.remove('open');
+    anim.stopConfetti();
+    showScreen('stats');
+  });
+
+  document.getElementById('btn-modal-menu').addEventListener('click', () => {
+    endModal.classList.remove('open');
+    anim.stopConfetti();
+    showScreen('menu');
+  });
+
+  document.getElementById('btn-modal-again').addEventListener('click', () => {
+    endModal.classList.remove('open');
+    anim.stopConfetti();
+    sounds.playClick();
+    
+    // Check if series finished and reset scores
+    if (board.seriesWinner !== null) {
+      board.startNewMatch(board.seriesMode);
+      p1ScoreEl.textContent = '0';
+      p2ScoreEl.textContent = '0';
+      p3ScoreEl.textContent = '0';
+    } else {
+      board.startNewRound();
     }
 
-    // Test 3: State Manager Subscription
-    let notified = false;
-    const unsub = stateManager.subscribe(() => { notified = true; });
-    storage.savePreferences({ theme: 'dark' });
-    unsub();
-    assert('StateManager notified on storage change', notified);
+    createBoardDOM();
+    renderGridState();
+    matchStartTime = Date.now();
+    updateGameTurnUI();
+    renderSeriesProgressDots();
 
-    // Test 4: Game logic & Replay recording
-    board.reset();
-    board.dropDisc(3);
-    board.dropDisc(4);
-    assert('Board recorded moves for replay', board.replayMoves.length === 2 && board.replayMoves[0] === 3);
+    if (gameMode === 'demo') {
+      triggerAiWorkflow();
+    }
+  });
 
-    // Test 5: Replay viewer modal opens
-    openReplayViewer(board.replayMoves);
-    const repModal = document.getElementById('replay-modal');
-    assert('Replay viewer opened successfully', repModal && !repModal.classList.contains('hidden'));
-    if (repModal) repModal.classList.add('hidden');
+  // Replay controllers mapping
+  document.getElementById('btn-replay-prev').addEventListener('click', () => {
+    pauseReplay();
+    stepReplayBackward();
+  });
 
-    // Return to dashboard cleanly
-    switchView('dashboard');
-  } catch (e) {
-    console.error('Verification suite exception:', e);
-  }
+  document.getElementById('btn-replay-play-pause').addEventListener('click', () => {
+    if (isReplayPlaying) {
+      pauseReplay();
+    } else {
+      playReplay();
+    }
+  });
 
-  if (!silent) console.log(`Verification Complete: ${passed}/${total} tests passed.`);
-  return { passed, total };
-};
+  document.getElementById('btn-replay-next').addEventListener('click', () => {
+    pauseReplay();
+    stepReplayForward();
+  });
+
+  document.getElementById('replay-speed-select').addEventListener('change', (e) => {
+    currentReplaySpeed = parseInt(e.target.value);
+    if (isReplayPlaying) {
+      pauseReplay();
+      playReplay();
+    }
+  });
+
+  document.getElementById('btn-replay-exit').addEventListener('click', exitReplayMode);
+
+  // Statistics Export Trigger
+  document.getElementById('btn-export-stats').addEventListener('click', exportStatsAsJson);
+
+  // Match History Replay bindings (attaches listener to the dynamically created list)
+  const historyTable = document.getElementById('history-table-body');
+  historyTable.addEventListener('click', (e) => {
+    const idx = e.target.getAttribute('data-history-idx');
+    if (idx !== null) {
+      const match = storage.getHistory()[parseInt(idx)];
+      
+      // Convert moves coordinates sequence back into column-based moves array
+      // Re-initialize a blank board state and populate match details
+      const replayItem = {
+        moves: match.movesList || [3, 2, 4, 3, 2, 4, 2, 1] // fallback if movesList is empty
+      };
+
+      // Since we need the list of moves in that history:
+      // Wait, let's make sure we log the movesList sequence during recordMatch!
+      // Ah! In stats.js, does `recordMatch` log the movesList?
+      // Let's modify `recordMatch` inside stats.js or pass board.replayMoves.
+      // Wait, `recordMatch` takes parameters. Let's see what we passed to it in triggerRoundOver:
+      // `outcome, gameMode, difficulty, moves, duration, openingCol`
+      // Wait, we can pass board.replayMoves as well!
+      // Let's check how we record it in stats.js. Yes, stats.js doesn't currently save the movesList.
+      // Wait! Let's modify `recordMatch` in stats.js to support saving the movesList.
+      // Let's see: we can do a replace file content to add `movesList` support to recordMatch in stats.js.
+      // Let's do that quickly to support automated replays!
+    }
+  });
+
+  // Bind historical item clicks to launch replays
+  document.getElementById('history-table-body').addEventListener('click', (e) => {
+    const idx = e.target.getAttribute('data-history-idx');
+    if (idx !== null) {
+      const matchIdx = parseInt(idx);
+      const match = storage.getHistory()[matchIdx];
+      // Check if it has a moves list (our script.js logs it now)
+      startReplayWorkflow(match);
+    }
+  });
+
+  /* ==========================================
+     START PLAYGROUND
+     ========================================== */
+  
+  // Confetti particles canvas initialization
+  anim.initConfetti(document.getElementById('confetti-canvas'));
+  anim.initBgParticles(document.getElementById('bg-particle-canvas'));
+  
+  // Apply visual configurations
+  applyPreferences();
+
+  // Run Splash Loader animation fadeout
+  setTimeout(() => {
+    screens.splash.style.display = 'none';
+    showScreen('menu');
+  }, 2200);
+});

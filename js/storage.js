@@ -1,10 +1,10 @@
+
+
 const DEFAULT_PREFERENCES = {
   theme: 'system', 
   sound: 'on',     
-  soundMuted: false,
   volume: 0.5,
   speed: 'normal', 
-  animationSpeed: 'normal',
   particles: 'on', 
   boardColor: '#1e293b', 
   p1Color: '#ff3e6c',    
@@ -12,13 +12,10 @@ const DEFAULT_PREFERENCES = {
 };
 
 const DEFAULT_PROFILE = {
-  username: 'Player 1',
   avatar: 'rocket',
   xp: 0,
-  xpNeeded: 1000,
   level: 1,
   rank: 'Bronze Cadet',
-  rankTitle: 'Bronze Cadet',
   badges: []
 };
 
@@ -62,17 +59,13 @@ class StorageManager {
   _set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-      if (window.stateManager) {
-        window.stateManager.notify('change', { key, value });
-      }
     } catch (e) {
       console.error(`Error writing key ${key} to LocalStorage:`, e);
     }
   }
 
   getPreferences() {
-    const data = this._get(this.keys.prefs, { ...DEFAULT_PREFERENCES });
-    return { ...DEFAULT_PREFERENCES, ...data };
+    return this._get(this.keys.prefs, { ...DEFAULT_PREFERENCES });
   }
 
   savePreferences(prefs) {
@@ -80,26 +73,8 @@ class StorageManager {
     this._set(this.keys.prefs, { ...current, ...prefs });
   }
 
-  // Aliases required by script.js
-  getSettings() {
-    return this.getPreferences();
-  }
-
-  saveSettings(prefs) {
-    this.savePreferences(prefs);
-  }
-
   getProfile() {
-    const data = this._get(this.keys.profile, { ...DEFAULT_PROFILE });
-    const merged = { ...DEFAULT_PROFILE, ...data };
-    if (merged.username === 'Grandmaster') merged.username = 'Player 1';
-    if (merged.rank === 'Grand Master' || merged.rankTitle === 'Grand Master') {
-      merged.rank = 'Connect Master';
-      merged.rankTitle = 'Connect Master';
-    }
-    if (!merged.rankTitle) merged.rankTitle = merged.rank;
-    if (!merged.xpNeeded) merged.xpNeeded = merged.level * 1000;
-    return merged;
+    return this._get(this.keys.profile, { ...DEFAULT_PROFILE });
   }
 
   saveProfile(profile) {
@@ -107,33 +82,8 @@ class StorageManager {
     this._set(this.keys.profile, { ...current, ...profile });
   }
 
-  addXP(amount) {
-    const profile = this.getProfile();
-    profile.xp += amount;
-    let xpNeeded = profile.level * 1000;
-    while (profile.xp >= xpNeeded) {
-      profile.xp -= xpNeeded;
-      profile.level += 1;
-      xpNeeded = profile.level * 1000;
-    }
-    profile.xpNeeded = xpNeeded;
-    
-    let rank = 'Bronze Cadet';
-    if (profile.level >= 20) rank = 'Connect Master';
-    else if (profile.level >= 15) rank = 'Diamond General';
-    else if (profile.level >= 10) rank = 'Platinum Major';
-    else if (profile.level >= 6) rank = 'Gold Sergeant';
-    else if (profile.level >= 3) rank = 'Silver Corporal';
-    
-    profile.rank = rank;
-    profile.rankTitle = rank;
-    this.saveProfile(profile);
-    return profile;
-  }
-
   getStats() {
-    const data = this._get(this.keys.stats, { ...DEFAULT_STATS });
-    return { ...DEFAULT_STATS, ...data };
+    return this._get(this.keys.stats, { ...DEFAULT_STATS });
   }
 
   saveStats(stats) {
@@ -167,24 +117,6 @@ class StorageManager {
     window.location.reload();
   }
 }
-
-class StateManager {
-  constructor() {
-    this.subscribers = new Set();
-  }
-  subscribe(callback) {
-    this.subscribers.add(callback);
-    return () => this.subscribers.delete(callback);
-  }
-  notify(eventName, data) {
-    this.subscribers.forEach(cb => {
-      try { cb(eventName, data); } catch (e) { console.error('State subscriber error:', e); }
-    });
-  }
-}
-
-export const stateManager = new StateManager();
-if (typeof window !== 'undefined') window.stateManager = stateManager;
 
 export const storage = new StorageManager();
 export { DEFAULT_PREFERENCES, DEFAULT_PROFILE, DEFAULT_STATS };

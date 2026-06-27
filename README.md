@@ -1,6 +1,6 @@
-# Connect Four Pro
+# Quantum Connect Four
 
-Connect Four Pro is a modern, responsive, and visually stunning desktop-first software implementation of the classic Connect Four game. Designed with a clean dark theme, it offers a smooth, glassmorphic layout, fluid falling-chip animations, and score tracking.
+Quantum Connect Four is a modern, responsive, and visually stunning web implementation of the classic Connect Four game. Designed with a premium dark neon theme, it offers a smooth, glassmorphic layout, fluid falling-chip animations, and score tracking.
 
 Play locally with a friend or test your skills against a highly tactical Minimax AI opponent.
 
