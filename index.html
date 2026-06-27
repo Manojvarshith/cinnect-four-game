@@ -4,19 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connect Four Pro | Desktop Dashboard Strategy Game</title>
-
   <meta name="description" content="Play Connect Four Pro with local multiplayer, progressive Minimax AI challenges, rich stats tracking, XP levels, 40+ achievements, and custom retro sound synthesizers.">
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-
   <script src="https://unpkg.com/lucide@latest"></script>
-
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  
   <canvas id="bg-particle-canvas" class="fullscreen-canvas"></canvas>
   <canvas id="confetti-canvas" class="fullscreen-canvas"></canvas>
 
@@ -32,7 +27,7 @@
     </div>
   </div>
 
-  <section id="screen-splash" class="app-screen screen-active" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; background: var(--bg-gradient); background-color: var(--bg-color); justify-content: center; align-items: center;">
+  <section id="screen-splash" class="app-screen screen-active" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; background: var(--bg-gradient); background-color: var(--bg-color); display: flex; justify-content: center; align-items: center;">
     <div class="splash-content">
       <div class="splash-logo-glow"></div>
       <div class="splash-logo">
@@ -47,8 +42,12 @@
   </section>
 
   <div class="app-layout">
-
+    
     <aside class="sidebar" id="sidebar">
+      <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" aria-label="Collapse sidebar">
+        <i data-lucide="chevron-left"></i>
+      </button>
+
       <div class="sidebar-brand">
         <i data-lucide="circle-dot"></i>
         <span>C4 <span class="logo-accent">PRO</span></span>
@@ -105,7 +104,7 @@
     </aside>
 
     <div class="main-wrapper">
-
+      
       <header class="top-nav">
         <div class="top-nav-left">
           <h2 id="view-title" class="view-title font-display">DASHBOARD</h2>
@@ -123,11 +122,10 @@
       </header>
 
       <main class="content-area scroll-panel">
-
+        
         <div id="view-dashboard" class="dashboard-grid-layout" style="display: flex;">
-
+          
           <div class="dash-row-1 stagger-in">
-            
             <div class="glass-panel dash-profile-card">
               <div class="dash-avatar-large">
                 <i data-lucide="rocket" id="dash-profile-avatar-icon"></i>
@@ -149,12 +147,12 @@
 
             <div class="glass-panel dash-winrate-card">
               <div class="winrate-info">
-                <span class="winrate-label">WIN RATE</span>
-                <span class="winrate-number font-display" id="dash-win-rate-display">0%</span>
+                <span class="winrate-label">CURRENT STREAK</span>
+                <span class="winrate-number font-display" id="dash-streak-display">0 Wins</span>
                 <span class="winrate-subtext" id="dash-longest-streak-display">Longest Streak: 0 Wins</span>
               </div>
               <div class="winrate-radial">
-                <i data-lucide="percent" class="winner-icon" style="color: var(--player-2); filter: drop-shadow(0 0 8px var(--player-2-glow));"></i>
+                <i data-lucide="zap" class="winner-icon" style="color: var(--player-2); filter: drop-shadow(0 0 8px var(--player-2-glow));"></i>
               </div>
             </div>
           </div>
@@ -170,7 +168,7 @@
             
             <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--player-1);">
               <div class="metric-inner">
-                <span class="metric-lbl">TOTAL WINS</span>
+                <span class="metric-lbl">WINS</span>
                 <span class="metric-val font-display" id="dash-wins" style="color: var(--player-1); text-shadow: 0 0 6px var(--player-1-glow);">0</span>
               </div>
               <div class="metric-icon-box" style="color: var(--player-1); border-color: rgba(255, 62, 108, 0.2);"><i data-lucide="trophy"></i></div>
@@ -178,7 +176,7 @@
 
             <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--player-2);">
               <div class="metric-inner">
-                <span class="metric-lbl">TOTAL LOSSES</span>
+                <span class="metric-lbl">LOSSES</span>
                 <span class="metric-val font-display" id="dash-losses" style="color: var(--player-2); text-shadow: 0 0 6px var(--player-2-glow);">0</span>
               </div>
               <div class="metric-icon-box" style="color: var(--player-2); border-color: rgba(0, 240, 255, 0.2);"><i data-lucide="award"></i></div>
@@ -186,50 +184,60 @@
 
             <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--tie-color);">
               <div class="metric-inner">
-                <span class="metric-lbl">TOTAL DRAWS</span>
+                <span class="metric-lbl">DRAWS</span>
                 <span class="metric-val font-display" id="dash-draws" style="color: var(--tie-color); text-shadow: 0 0 6px var(--tie-glow);">0</span>
               </div>
               <div class="metric-icon-box" style="color: var(--tie-color); border-color: rgba(255, 184, 0, 0.2);"><i data-lucide="help-circle"></i></div>
             </div>
+
+            <div class="glass-panel metric-mini-card" style="border-left: 3px solid var(--player-2);">
+              <div class="metric-inner">
+                <span class="metric-lbl">WIN RATE</span>
+                <span class="metric-val font-display" id="dash-winrate-metric-val" style="color: var(--player-2);">0%</span>
+              </div>
+              <div class="metric-icon-box" style="color: var(--player-2);"><i data-lucide="percent"></i></div>
+            </div>
+
+            <div class="glass-panel metric-mini-card">
+              <div class="metric-inner">
+                <span class="metric-lbl">AVG ROUND TIME</span>
+                <span class="metric-val font-display" id="dash-avg-time-metric-val">0s</span>
+              </div>
+              <div class="metric-icon-box"><i data-lucide="clock"></i></div>
+            </div>
           </div>
 
           <div class="dash-row-3 stagger-in">
-            
             <div class="glass-panel graphical-win-trend">
               <span class="win-trend-title font-display">PERFORMANCE CHART (WINS TREND)</span>
               <div class="trend-chart-area" id="dash-win-trend-container">
-                
               </div>
             </div>
 
             <div class="glass-panel graphical-win-trend">
               <span class="win-trend-title font-display">FAVORITE OPENING COLUMNS</span>
               <div class="opening-chart-bars" id="dash-opening-columns-chart-container">
-                
               </div>
             </div>
           </div>
 
           <div class="dash-row-4 stagger-in">
-            
             <div class="glass-panel dash-recent-matches">
               <span class="win-trend-title font-display">RECENT MATCHES</span>
               <div class="dash-recent-matches" id="dash-recent-matches-container">
-                
               </div>
             </div>
 
             <div class="glass-panel dash-recent-achievements">
-              <span class="win-trend-title font-display">RECENT UNLOCKED ACHIEVEMENTS</span>
+              <span class="win-trend-title font-display">ACHIEVEMENT PROGRESSION</span>
               <div class="dash-recent-achievements" id="dash-recent-achievements-container">
-                
               </div>
             </div>
           </div>
         </div>
 
         <div id="view-play" class="play-view-layout" style="display: none;">
-
+          
           <div class="glass-panel" id="game-setup-panel" style="grid-column: 1 / -1; max-width: 500px; margin: 40px auto; width: 100%;">
             <div class="modal-header-glow" style="background: linear-gradient(90deg, var(--player-1), var(--player-2)); margin-bottom: 20px;"></div>
             <h2 class="modal-title font-display">MATCH CONFIGURATION</h2>
@@ -272,45 +280,14 @@
             </button>
           </div>
 
-          <div class="board-column-panel stagger-in" id="active-game-board-wrapper" style="display: none;">
-            
-            <div class="series-badge font-display" id="game-series-target-banner" style="margin-bottom: 10px;">
-              BEST OF 5 SERIES
-            </div>
-
-            <div class="series-dots-row" id="game-series-dots-row" style="margin-bottom: 10px;">
-              
-            </div>
-
-            <section class="game-container" id="physical-board-container" style="width: 100%; max-width: 580px;">
-              
-              <div class="board-column-hovers" id="game-column-hovers">
-                <div class="hover-col" data-col="0"></div>
-                <div class="hover-col" data-col="1"></div>
-                <div class="hover-col" data-col="2"></div>
-                <div class="hover-col" data-col="3"></div>
-                <div class="hover-col" data-col="4"></div>
-                <div class="hover-col" data-col="5"></div>
-                <div class="hover-col" data-col="6"></div>
-              </div>
-
-              <div class="board-wrapper">
-                <div class="board-grid" id="game-board-grid">
-                  
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div class="sidebar-controls-panel stagger-in" id="active-game-controls-wrapper" style="display: none;">
-
+          <div class="sidebar-controls-panel stagger-in" id="active-game-left-column" style="display: none;">
             <div class="turn-indicator-card glass-panel" id="game-turn-card" style="align-self: stretch;">
               <span class="indicator-label">CURRENT TURN</span>
               <div class="current-player-display">
                 <div class="token-preview player-1-color glow-red" id="game-turn-token"></div>
                 <span class="player-name" id="game-turn-name">Player 1</span>
               </div>
-
+              
               <div class="ai-thinking-indicator" id="game-ai-thinking-box" style="display: none; align-items: center; gap: 8px;">
                 <span id="ai-thinking-text">AI is thinking...</span>
                 <div class="ai-dots-anim">
@@ -338,30 +315,58 @@
                 <span class="score" id="game-p2-score">0</span>
               </div>
             </div>
+          </div>
 
-            <div class="glass-panel game-active-scoreboard" style="gap: 10px;">
-              <div class="undo-redo-controls" style="width: 100%;">
-                <button id="btn-game-undo" class="action-btn secondary-btn" style="flex: 1; justify-content: center;" aria-label="Undo last placement">
+          <div class="board-column-panel stagger-in" id="active-game-board-wrapper" style="display: none;">
+            
+            <div class="series-badge font-display" id="game-series-target-banner" style="margin-bottom: 10px;">
+              BEST OF 5 SERIES
+            </div>
+
+            <div class="series-dots-row" id="game-series-dots-row" style="margin-bottom: 10px;">
+            </div>
+
+            <section class="game-container" id="physical-board-container" style="width: 100%; max-width: 580px;">
+              <div class="board-column-hovers" id="game-column-hovers">
+                <div class="hover-col" data-col="0"></div>
+                <div class="hover-col" data-col="1"></div>
+                <div class="hover-col" data-col="2"></div>
+                <div class="hover-col" data-col="3"></div>
+                <div class="hover-col" data-col="4"></div>
+                <div class="hover-col" data-col="5"></div>
+                <div class="hover-col" data-col="6"></div>
+              </div>
+
+              <div class="board-wrapper">
+                <div class="board-grid" id="game-board-grid">
+                </div>
+              </div>
+            </section>
+
+            <div class="glass-panel game-active-scoreboard" style="gap: 10px; width: 100%; max-width: 580px; flex-direction: row; align-items: center; justify-content: center; padding: 12px 20px;">
+              <div class="undo-redo-controls" style="display: flex; gap: 8px; flex: 1;">
+                <button id="btn-game-undo" class="action-btn secondary-btn" style="flex: 1; justify-content: center;">
                   <i data-lucide="undo"></i> <span>UNDO</span>
                 </button>
-                <button id="btn-game-redo" class="action-btn secondary-btn" style="flex: 1; justify-content: center;" aria-label="Redo last undone placement">
+                <button id="btn-game-redo" class="action-btn secondary-btn" style="flex: 1; justify-content: center;">
                   <i data-lucide="redo"></i> <span>REDO</span>
                 </button>
               </div>
 
-              <button id="btn-game-restart" class="action-btn primary-btn" style="width: 100%; justify-content: center;">
-                <i data-lucide="rotate-ccw"></i> <span>RESTART ROUND</span>
+              <button id="btn-game-restart" class="action-btn primary-btn" style="flex: 1; justify-content: center;">
+                <i data-lucide="rotate-ccw"></i> <span>RESTART</span>
               </button>
 
-              <button id="btn-game-resign" class="action-btn secondary-btn" style="width: 100%; justify-content: center; border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">
-                <i data-lucide="x-circle"></i> <span>RESIGN MATCH</span>
+              <button id="btn-game-resign" class="action-btn secondary-btn" style="flex: 1; justify-content: center; border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">
+                <i data-lucide="x-circle"></i> <span>RESIGN</span>
               </button>
             </div>
+          </div>
 
-            <div class="glass-panel local-match-logs scroll-panel">
-              <span class="win-trend-title font-display">PLACEMENT LOGS</span>
-              <ul class="local-log-list" id="local-move-logs-list">
-                
+          <div class="sidebar-controls-panel stagger-in" id="active-game-right-column" style="display: none;">
+            <div class="glass-panel local-match-logs scroll-panel" style="align-self: stretch; height: 100%; min-height: 400px; display: flex; flex-direction: column;">
+              <span class="win-trend-title font-display" style="border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; margin-bottom: 10px;">PLACEMENT LOGS</span>
+              <ul class="local-log-list" id="local-move-logs-list" style="flex: 1; overflow-y: auto;">
               </ul>
             </div>
           </div>
@@ -436,11 +441,9 @@
           </div>
 
           <div class="dash-row-3 stagger-in">
-            
             <div class="glass-panel graphical-win-trend" style="grid-column: 1 / -1;">
               <span class="win-trend-title font-display">DETAILED OPENING COLUMN POPULARITY</span>
               <div class="opening-chart-bars" id="substats-opening-columns-chart-container">
-                
               </div>
             </div>
           </div>
@@ -453,14 +456,13 @@
           </div>
 
           <div class="achievements-grid-layout stagger-in" id="substats-achievements-grid">
-            
           </div>
         </div>
 
         <div id="view-history" class="dashboard-grid-layout" style="display: none;">
           
           <div class="glass-panel history-view-layout stagger-in">
-
+            
             <div class="history-toolbar">
               <div class="search-input-wrapper">
                 <i data-lucide="search"></i>
@@ -495,7 +497,6 @@
                   </tr>
                 </thead>
                 <tbody id="substats-history-table-body">
-                  
                 </tbody>
               </table>
             </div>
@@ -518,7 +519,7 @@
         <div id="view-profile" class="dashboard-grid-layout" style="display: none;">
           
           <div class="profile-view-layout">
-
+            
             <div class="glass-panel profile-sidebar-card stagger-in">
               <div class="profile-avatar-xl">
                 <i data-lucide="rocket"></i>
@@ -575,7 +576,6 @@
 
               <h3 class="profile-stats-title font-display" style="margin-top: 15px;">BADGES EARNED</h3>
               <div class="dash-recent-achievements" id="profile-unlocked-badges-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
-                
               </div>
             </div>
 
@@ -586,7 +586,6 @@
           <div class="settings-container glass-panel scroll-panel stagger-in" style="max-height: none; overflow-y: visible;">
             
             <div class="settings-form">
-              
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Visual Theme Mode</span>
@@ -681,7 +680,7 @@
         <i data-lucide="trophy" class="winner-icon" id="end-modal-icon"></i>
         <h2 class="modal-title font-display" id="end-modal-title">PLAYER 1 WINS!</h2>
         <p class="modal-description" id="end-modal-description">A brilliant series of calculations delivers a crushing victory.</p>
-
+        
         <div class="xp-reward-box" id="end-modal-xp-box">
           <span class="xp-reward-title font-display">REWARDS EARNED</span>
           <span class="xp-reward-val font-display">+<span id="end-modal-xp-gained">0</span> XP</span>

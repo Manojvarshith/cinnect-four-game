@@ -1,29 +1,27 @@
-
 import { storage } from './js/storage.js';
 import { sounds } from './js/sound.js';
 import { anim } from './js/animation.js';
 import { BoardManager, ROWS, COLS } from './js/board.js';
 import { ConnectFourAI } from './js/ai.js';
-import { recordMatch, getLeaderboardData, exportStatsAsJson, getXpRequiredForLevel } from './js/stats.js';
+import { recordMatch, getXpRequiredForLevel } from './js/stats.js';
 import { ACHIEVEMENTS, checkAchievements } from './js/achievements.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  
   lucide.createIcons();
 
   const board = new BoardManager();
   const ai = new ConnectFourAI('medium');
 
-  let gameMode = 'ai'; 
+  let gameMode = 'ai';
   let activeDifficulty = 'medium';
   let isAiPlaying = false;
   let matchStartTime = 0;
-
+  
   let activeReplayIndex = 0;
   let activeReplayMoves = [];
   let isReplayPlaying = false;
   let replayTimeout = null;
-  let currentReplaySpeed = 1500; 
+  let currentReplaySpeed = 1500;
 
   let historyPage = 1;
   const historyPageSize = 8;
@@ -32,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const body = document.body;
   const viewTitle = document.getElementById('view-title');
   const sidebar = document.getElementById('sidebar');
+  const btnCollapseSidebar = document.getElementById('sidebar-collapse-btn');
 
   const views = {
     dashboard: document.getElementById('view-dashboard'),
@@ -48,8 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const achievementToast = document.getElementById('achievement-toast');
 
   const gameSetupPanel = document.getElementById('game-setup-panel');
+  const activeGameLeftColumn = document.getElementById('active-game-left-column');
   const activeGameBoardWrapper = document.getElementById('active-game-board-wrapper');
-  const activeGameControlsWrapper = document.getElementById('active-game-controls-wrapper');
+  const activeGameRightColumn = document.getElementById('active-game-right-column');
   const selectSetupMode = document.getElementById('game-setup-mode-select');
   const selectSetupSeries = document.getElementById('game-setup-series-mode');
   const selectSetupDifficulty = document.getElementById('game-setup-difficulty-select');
@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const tieScoreEl = document.getElementById('game-tie-score');
   const p2ScoreEl = document.getElementById('game-p2-score');
   const p2Label = document.getElementById('game-p2-label');
-  const p2TokenPreview = document.getElementById('game-p2-token-preview');
 
   const selectTheme = document.getElementById('setting-theme');
   const selectSpeed = document.getElementById('setting-speed');
@@ -84,19 +83,51 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnQuickTheme = document.getElementById('quick-theme-btn');
   const quickThemeIcon = document.getElementById('quick-theme-icon');
 
+  function animateCount(el, target, duration = 800, suffix = '') {
+    if (!el) return;
+    const start = 0;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const value = Math.floor(ease * (target - start) + start);
+      
+      el.textContent = value + suffix;
+      
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        el.textContent = target + suffix;
+      }
+    }
+    requestAnimationFrame(update);
+  }
+
+  btnCollapseSidebar.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    const icon = btnCollapseSidebar.querySelector('i');
+    if (sidebar.classList.contains('collapsed')) {
+      icon.setAttribute('data-lucide', 'chevron-right');
+    } else {
+      icon.setAttribute('data-lucide', 'chevron-left');
+    }
+    lucide.createIcons();
+    sounds.playClick();
+  });
+
   function navigateTo(targetKey) {
     sounds.playClick();
-
     anim.stopBgParticles();
 
     Object.keys(views).forEach(key => {
       if (key === targetKey) {
         views[key].style.display = targetKey === 'play' ? 'grid' : 'flex';
-        
         const cards = views[key].querySelectorAll('.stagger-in');
         cards.forEach(card => {
           card.style.animation = 'none';
-          card.offsetHeight; 
+          card.offsetHeight;
           card.style.animation = '';
         });
       } else {
@@ -140,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (targetKey === 'profile') {
       renderProfileScreen();
     }
-
+    
     updateSidebarProfileDetails();
   }
 
@@ -155,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyPreferences() {
     const prefs = storage.getPreferences();
-
+    
     applyTheme(prefs.theme);
     selectTheme.value = prefs.theme;
 
@@ -188,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
       quickThemeIcon.setAttribute('data-lucide', 'sun');
     } else {
       body.classList.add('system-theme-active');
-      
       const isSystemLight = window.matchMedia('(prefers-color-scheme: light)').matches;
       quickThemeIcon.setAttribute('data-lucide', isSystemLight ? 'moon' : 'sun');
     }
@@ -238,18 +268,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dash-profile-xp-max').textContent = xpMax;
     document.getElementById('dash-profile-xp-fill-bar').style.width = `${Math.min((profile.xp / xpMax) * 100, 100)}%`;
 
-    const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
-    document.getElementById('dash-win-rate-display').textContent = `${winRate}%`;
+    document.getElementById('dash-streak-display').textContent = `${stats.currentStreak} Wins`;
     document.getElementById('dash-longest-streak-display').textContent = `Longest Streak: ${stats.longestStreak} Wins`;
 
-    document.getElementById('dash-games-played').textContent = stats.gamesPlayed;
-    document.getElementById('dash-wins').textContent = stats.wins;
-    document.getElementById('dash-losses').textContent = stats.losses;
-    document.getElementById('dash-draws').textContent = stats.draws;
+    animateCount(document.getElementById('dash-games-played'), stats.gamesPlayed);
+    animateCount(document.getElementById('dash-wins'), stats.wins);
+    animateCount(document.getElementById('dash-losses'), stats.losses);
+    animateCount(document.getElementById('dash-draws'), stats.draws);
+
+    const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
+    animateCount(document.getElementById('dash-winrate-metric-val'), winRate, 800, '%');
+
+    const avgSec = stats.gamesPlayed > 0 ? Math.round(stats.totalMatchTime / stats.gamesPlayed) : 0;
+    animateCount(document.getElementById('dash-avg-time-metric-val'), avgSec, 800, 's');
 
     const trendContainer = document.getElementById('dash-win-trend-container');
     trendContainer.innerHTML = '';
-    const last10 = history.slice(0, 10).reverse(); 
+    const last10 = history.slice(0, 10).reverse();
 
     if (last10.length === 0) {
       trendContainer.innerHTML = `<span style="position: absolute; top: 40%; left: 10%; font-size: 12px; color: var(--text-muted);">No match trend logs recorded yet.</span>`;
@@ -257,10 +292,10 @@ document.addEventListener('DOMContentLoaded', () => {
       last10.forEach(m => {
         const bar = document.createElement('div');
         bar.classList.add('trend-point');
-
+        
         const pct = Math.max(Math.min((m.moves / 42) * 100, 100), 15);
         bar.style.height = `${pct}%`;
-
+        
         if (m.winnerId === 1) {
           bar.style.background = 'linear-gradient(180deg, var(--player-1) 0%, rgba(255, 62, 108, 0.1) 100%)';
           bar.style.boxShadow = '0 0 6px var(--player-1-glow)';
@@ -312,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const achievementsContainer = document.getElementById('dash-recent-achievements-container');
     achievementsContainer.innerHTML = '';
-
     const last4UnlockedIds = unlocked.slice(-4).reverse();
 
     if (last4UnlockedIds.length === 0) {
@@ -368,12 +402,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (isGameActive) {
       gameSetupPanel.style.display = 'none';
+      activeGameLeftColumn.style.display = 'flex';
       activeGameBoardWrapper.style.display = 'flex';
-      activeGameControlsWrapper.style.display = 'flex';
+      activeGameRightColumn.style.display = 'flex';
     } else {
       gameSetupPanel.style.display = 'block';
+      activeGameLeftColumn.style.display = 'none';
       activeGameBoardWrapper.style.display = 'none';
-      activeGameControlsWrapper.style.display = 'none';
+      activeGameRightColumn.style.display = 'none';
     }
   }
 
@@ -432,17 +468,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderStatsScreen() {
     const stats = storage.getStats();
     
-    document.getElementById('substats-games-played').textContent = stats.gamesPlayed;
-    document.getElementById('substats-wins').textContent = stats.wins;
-    document.getElementById('substats-losses').textContent = stats.losses;
-    document.getElementById('substats-draws').textContent = stats.draws;
-    document.getElementById('substats-longest-streak').textContent = stats.longestStreak;
+    animateCount(document.getElementById('substats-games-played'), stats.gamesPlayed);
+    animateCount(document.getElementById('substats-wins'), stats.wins);
+    animateCount(document.getElementById('substats-losses'), stats.losses);
+    animateCount(document.getElementById('substats-draws'), stats.draws);
+    animateCount(document.getElementById('substats-longest-streak'), stats.longestStreak);
 
     const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
-    document.getElementById('substats-win-rate').textContent = `${winRate}%`;
+    animateCount(document.getElementById('substats-win-rate'), winRate, 800, '%');
 
     const avgSec = stats.gamesPlayed > 0 ? Math.round(stats.totalMatchTime / stats.gamesPlayed) : 0;
-    document.getElementById('substats-avg-time').textContent = `${avgSec}s`;
+    animateCount(document.getElementById('substats-avg-time'), avgSec, 800, 's');
 
     document.getElementById('substats-fastest-win').textContent = stats.fastestWin !== null ? `${stats.fastestWin}s` : 'N/A';
 
@@ -458,9 +494,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ACHIEVEMENTS.forEach(badge => {
       const isUnlocked = unlocked.includes(badge.id);
-      
       const card = document.createElement('div');
-      card.classList.add('achievement-card', isUnlocked ? 'unlocked' : 'locked');
+      card.classList.add('achievement-card', 'glass-panel', isUnlocked ? 'unlocked' : 'locked');
 
       let iconName = isUnlocked ? badge.icon : 'lock';
 
@@ -468,11 +503,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="achievement-badge">
           <i data-lucide="${iconName}"></i>
         </div>
-        <div class="achievement-details">
-          <span class="ach-title">${badge.title}</span>
-          <span class="ach-desc">${badge.desc}</span>
-          <span class="ach-xp">+${badge.xp} XP</span>
-        </div>
+        <span class="ach-title">${badge.title}</span>
+        <span class="ach-desc">${badge.desc}</span>
+        <span class="ach-xp">+${badge.xp} XP</span>
       `;
       grid.appendChild(card);
     });
@@ -486,7 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawHistory = storage.getHistory();
 
     filteredHistory = rawHistory.filter(m => {
-      
       if (outcomeFilter === 'win' && m.winnerId !== 1) return false;
       if (outcomeFilter === 'loss' && m.winnerId !== 2) return false;
       if (outcomeFilter === 'draw' && m.winnerId !== 'tie') return false;
@@ -528,9 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     paginatedMatches.forEach((m, idx) => {
-      
       const overallIndex = startIdx + idx;
-      
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${m.date} <span style="font-size: 10px; color: var(--text-muted);">${m.time}</span></td>
@@ -547,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('history-search-input').addEventListener('input', applyHistoryFilters);
   document.getElementById('history-filter-outcome').addEventListener('change', applyHistoryFilters);
-
+  
   document.getElementById('btn-history-page-prev').addEventListener('click', () => {
     if (historyPage > 1) {
       historyPage--;
@@ -580,10 +610,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('profile-xp-max-num').textContent = `${xpMax} XP`;
     document.getElementById('profile-xp-fill-bar').style.width = `${Math.min((profile.xp / xpMax) * 100, 100)}%`;
 
-    document.getElementById('profile-games-played').textContent = stats.gamesPlayed;
+    animateCount(document.getElementById('profile-games-played'), stats.gamesPlayed);
     
     const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
-    document.getElementById('profile-win-rate').textContent = `${winRate}%`;
+    animateCount(document.getElementById('profile-win-rate'), winRate, 800, '%');
     document.getElementById('profile-longest-streak').textContent = `${stats.longestStreak} Wins`;
 
     const maxVal = Math.max(...stats.openingCols);
@@ -605,13 +635,12 @@ document.addEventListener('DOMContentLoaded', () => {
     ACHIEVEMENTS.slice(0, 12).forEach(badge => {
       const isUnlocked = unlocked.includes(badge.id);
       const cell = document.createElement('div');
-      cell.classList.add('achievement-card');
+      cell.classList.add('achievement-card', 'glass-panel');
       cell.style.padding = '8px 12px';
       cell.style.gap = '10px';
+      cell.style.flexDirection = 'row';
       if (!isUnlocked) {
         cell.style.filter = 'grayscale(1) opacity(0.3)';
-      } else {
-        cell.style.borderColor = 'rgba(0, 240, 255, 0.2)';
       }
 
       cell.innerHTML = `
@@ -663,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
     storage.savePreferences({ theme: nextTheme });
     applyTheme(nextTheme);
     sounds.playThemeToggle();
-
+    
     selectTheme.value = nextTheme;
   });
 
@@ -782,7 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function triggerAiWorkflow() {
     isAiPlaying = true;
-
+    
     turnToken.style.display = 'none';
     turnName.style.display = 'none';
     aiThinkingBox.style.display = 'flex';
@@ -982,8 +1011,9 @@ document.addEventListener('DOMContentLoaded', () => {
     navigateTo('play');
 
     gameSetupPanel.style.display = 'none';
+    activeGameLeftColumn.style.display = 'flex';
     activeGameBoardWrapper.style.display = 'flex';
-    activeGameControlsWrapper.style.display = 'flex';
+    activeGameRightColumn.style.display = 'flex';
 
     replayOverlay.classList.add('active');
     
@@ -1039,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lastMove = board.undo();
     if (lastMove) {
       activeReplayIndex--;
-
+      
       if (localMoveLogsList.lastChild) {
         localMoveLogsList.removeChild(localMoveLogsList.lastChild);
       }
@@ -1211,11 +1241,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameMode === 'ai') {
       const aiMove = board.undo();
       const p1Move = board.undo();
-
+      
       if (board.historyStack.length === 0) {
         board.firstMoveCol = -1;
       }
-
+      
       if (localMoveLogsList.lastChild) localMoveLogsList.removeChild(localMoveLogsList.lastChild);
       if (localMoveLogsList.lastChild) localMoveLogsList.removeChild(localMoveLogsList.lastChild);
 
@@ -1360,7 +1390,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('keydown', (e) => {
-    
     if (views.play.style.display !== 'none' && !board.isGameOver && !isAiPlaying && !replayOverlay.classList.contains('active')) {
       const key = e.key;
       if (key >= '1' && key <= '7') {
@@ -1384,7 +1413,7 @@ document.addEventListener('DOMContentLoaded', () => {
   applyPreferences();
 
   setTimeout(() => {
-    screens.splash.style.display = 'none';
+    document.getElementById('screen-splash').style.display = 'none';
     navigateTo('dashboard');
   }, 2200);
 });
