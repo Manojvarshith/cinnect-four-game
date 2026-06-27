@@ -1,5 +1,5 @@
 import { sound } from './js/sound.js';
-import { storage } from './js/storage.js';
+import { storage, stateManager } from './js/storage.js';
 import { getStats, recordMatch, getLeaderboard, clearAllData } from './js/stats.js';
 import { achievements, checkAchievements, getUnlockProgress } from './js/achievements.js';
 import { Board } from './js/board.js';
@@ -72,8 +72,29 @@ document.addEventListener('DOMContentLoaded', () => {
       bindHistoryControls();
       bindSettingsAndModals();
       
+      // Centralized State Manager Subscription
+      stateManager.subscribe(() => {
+        const profile = storage.getProfile();
+        const sideName = document.getElementById('sidebar-username');
+        const sideLevel = document.getElementById('sidebar-userlevel');
+        if (sideName) sideName.textContent = profile.username;
+        if (sideLevel) sideLevel.textContent = `Level ${profile.level} • ${profile.rankTitle}`;
+
+        if (document.getElementById('view-dashboard')?.classList.contains('view-active')) renderDashboard();
+        if (document.getElementById('view-statistics')?.classList.contains('view-active')) renderStatistics();
+        if (document.getElementById('view-profile')?.classList.contains('view-active')) renderProfile();
+        if (document.getElementById('view-achievements')?.classList.contains('view-active')) {
+          const activeAchTab = document.querySelector('.ach-tab.active')?.getAttribute('data-filter') || 'all';
+          renderAchievements(activeAchTab);
+        }
+        if (document.getElementById('view-history')?.classList.contains('view-active')) renderHistoryTable();
+      });
+
       // Refresh active view after bindings
       switchView('dashboard');
+
+      // Run automated self-verification diagnostic
+      setTimeout(() => { if (window.runAutomatedVerification) window.runAutomatedVerification(true); }, 500);
     } catch (err) {
       console.error('Non-blocking background initialization error:', err);
     }
@@ -734,17 +755,14 @@ function showEndModal(outcome, duration) {
     if (title) title.textContent = 'VICTORY!';
     if (sub) sub.textContent = 'You won the match!';
     if (xpVal) xpVal.textContent = '+50 XP';
-    storage.addXP(50);
   } else if (outcome === 'loss') {
     if (title) title.textContent = 'DEFEATED';
     if (sub) sub.textContent = 'The AI engine outsmarted your strategy.';
     if (xpVal) xpVal.textContent = '+15 XP';
-    storage.addXP(15);
   } else {
     if (title) title.textContent = 'STALEMATE';
     if (sub) sub.textContent = 'A complete grid deadlock.';
     if (xpVal) xpVal.textContent = '+25 XP';
-    storage.addXP(25);
   }
 
   if (modal) modal.classList.remove('hidden');
@@ -1125,3 +1143,60 @@ function updateReplayControls() {
   if (prev) prev.disabled = (replayStep === 0);
   if (next) next.disabled = (replayStep === replayMovesList.length);
 }
+
+window.runAutomatedVerification = function(silent = false) {
+  if (!silent) console.log('Starting Automated Functional Verification...');
+  let passed = 0;
+  let total = 0;
+  function assert(testName, cond) {
+    total++;
+    if (cond) {
+      passed++;
+      if (!silent) console.log(`[PASS] ${testName}`);
+    } else {
+      console.error(`[FAIL] ${testName}`);
+    }
+  }
+
+  try {
+    // Test 1: Navigation switching
+    ['dashboard', 'play', 'statistics', 'history', 'achievements', 'profile', 'settings'].forEach(view => {
+      switchView(view);
+      const el = document.getElementById(`view-${view}`);
+      assert(`Navigation to ${view}`, el && el.classList.contains('view-active'));
+    });
+
+    // Test 2: Quick Match button
+    if (window.startQuickMatch) {
+      window.startQuickMatch();
+      assert('Quick Match started game', document.getElementById('view-play')?.classList.contains('view-active'));
+    }
+
+    // Test 3: State Manager Subscription
+    let notified = false;
+    const unsub = stateManager.subscribe(() => { notified = true; });
+    storage.savePreferences({ theme: 'dark' });
+    unsub();
+    assert('StateManager notified on storage change', notified);
+
+    // Test 4: Game logic & Replay recording
+    board.reset();
+    board.dropDisc(3);
+    board.dropDisc(4);
+    assert('Board recorded moves for replay', board.replayMoves.length === 2 && board.replayMoves[0] === 3);
+
+    // Test 5: Replay viewer modal opens
+    openReplayViewer(board.replayMoves);
+    const repModal = document.getElementById('replay-modal');
+    assert('Replay viewer opened successfully', repModal && !repModal.classList.contains('hidden'));
+    if (repModal) repModal.classList.add('hidden');
+
+    // Return to dashboard cleanly
+    switchView('dashboard');
+  } catch (e) {
+    console.error('Verification suite exception:', e);
+  }
+
+  if (!silent) console.log(`Verification Complete: ${passed}/${total} tests passed.`);
+  return { passed, total };
+};

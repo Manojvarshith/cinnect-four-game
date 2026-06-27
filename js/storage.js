@@ -62,6 +62,9 @@ class StorageManager {
   _set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      if (window.stateManager) {
+        window.stateManager.notify('change', { key, value });
+      }
     } catch (e) {
       console.error(`Error writing key ${key} to LocalStorage:`, e);
     }
@@ -164,6 +167,24 @@ class StorageManager {
     window.location.reload();
   }
 }
+
+class StateManager {
+  constructor() {
+    this.subscribers = new Set();
+  }
+  subscribe(callback) {
+    this.subscribers.add(callback);
+    return () => this.subscribers.delete(callback);
+  }
+  notify(eventName, data) {
+    this.subscribers.forEach(cb => {
+      try { cb(eventName, data); } catch (e) { console.error('State subscriber error:', e); }
+    });
+  }
+}
+
+export const stateManager = new StateManager();
+if (typeof window !== 'undefined') window.stateManager = stateManager;
 
 export const storage = new StorageManager();
 export { DEFAULT_PREFERENCES, DEFAULT_PROFILE, DEFAULT_STATS };
