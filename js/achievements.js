@@ -3,7 +3,7 @@ import { storage } from './storage.js';
 import { addXp } from './stats.js';
 
 export const ACHIEVEMENTS = [
-  
+
   { id: 'win_1', title: 'First Victory', desc: 'Win your first Connect Four match', category: 'wins', target: 1, xp: 100, icon: 'trophy' },
   { id: 'win_5', title: 'Casual Competitor', desc: 'Achieve 5 wins', category: 'wins', target: 5, xp: 150, icon: 'award' },
   { id: 'win_10', title: 'Rising Star', desc: 'Achieve 10 wins', category: 'wins', target: 10, xp: 200, icon: 'shield' },
@@ -61,7 +61,7 @@ export function checkAchievements() {
   const newlyUnlocked = [];
 
   ACHIEVEMENTS.forEach(badge => {
-    
+
     if (unlocked.includes(badge.id)) return;
 
     let qualifies = false;

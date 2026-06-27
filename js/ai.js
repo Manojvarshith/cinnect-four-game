@@ -28,12 +28,12 @@ export class ConnectFourAI {
   }
 
   getEasyMove(validMoves) {
-    
+
     return validMoves[Math.floor(Math.random() * validMoves.length)];
   }
 
   getMediumMove(grid, validMoves, p1, ai) {
-    
+
     for (const col of validMoves) {
       const tempGrid = this.copyGrid(grid);
       const r = this.getLowestEmptyRowInGrid(tempGrid, col);
@@ -203,7 +203,7 @@ export class ConnectFourAI {
   }
 
   checkWinInGrid(grid, player) {
-    
+
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         if (grid[r][c] === player && grid[r][c+1] === player && grid[r][c+2] === player && grid[r][c+3] === player) {
@@ -211,7 +211,7 @@ export class ConnectFourAI {
         }
       }
     }
-    
+
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS; c++) {
         if (grid[r][c] === player && grid[r+1][c] === player && grid[r+2][c] === player && grid[r+3][c] === player) {
@@ -219,7 +219,7 @@ export class ConnectFourAI {
         }
       }
     }
-    
+
     for (let r = 0; r < ROWS - 3; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         if (grid[r][c] === player && grid[r+1][c+1] === player && grid[r+2][c+2] === player && grid[r+3][c+3] === player) {
@@ -227,7 +227,7 @@ export class ConnectFourAI {
         }
       }
     }
-    
+
     for (let r = 3; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         if (grid[r][c] === player && grid[r-1][c+1] === player && grid[r-2][c+2] === player && grid[r-3][c+3] === player) {

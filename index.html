@@ -4,28 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connect Four Pro | Elite Arcade Experience</title>
-  
-  <!-- SEO Meta Tags -->
+
   <meta name="description" content="Play Connect Four Pro with local multiplayer, progressive Minimax AI challenges, rich stats tracking, XP levels, 40+ achievements, and custom retro sound synthesizers.">
   <meta name="keywords" content="Connect Four, Minimax AI, CSS animations, Web Audio API, local storage game, glassmorphism UI, retro arcade">
 
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-  
-  <!-- Lucide Icons -->
+
   <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <!-- Stylesheet -->
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Ambient & Confetti Canvases -->
+
   <canvas id="bg-particle-canvas" class="fullscreen-canvas"></canvas>
   <canvas id="confetti-canvas" class="fullscreen-canvas"></canvas>
 
-  <!-- Achievement Unlock Notification Card (Toast) -->
   <div id="achievement-toast" class="toast-card" role="alert" aria-live="assertive">
     <div class="toast-glow"></div>
     <div class="toast-body">
@@ -38,7 +33,6 @@
     </div>
   </div>
 
-  <!-- SPLASH SCREEN / INTRO VIEW -->
   <section id="screen-splash" class="app-screen screen-active">
     <div class="splash-content">
       <div class="splash-logo-glow"></div>
@@ -53,7 +47,6 @@
     </div>
   </section>
 
-  <!-- MAIN MENU VIEW -->
   <section id="screen-menu" class="app-screen">
     <div class="menu-container">
       <header class="menu-header">
@@ -66,7 +59,6 @@
         </div>
       </header>
 
-      <!-- Profile Summary Panel -->
       <div class="menu-profile-card glass-panel" id="menu-profile">
         <div class="avatar-ring" id="menu-avatar-display">
           <i data-lucide="rocket"></i>
@@ -86,13 +78,12 @@
         </div>
       </div>
 
-      <!-- Action Navigation Buttons -->
       <nav class="menu-options" aria-label="Main Menu Navigation">
         <button id="btn-menu-vs-ai" class="menu-btn primary-menu-btn">
           <i data-lucide="cpu"></i>
           <span>PLAY VS COMPUTER AI</span>
         </button>
-        
+
         <button id="btn-menu-vs-friend" class="menu-btn primary-menu-btn">
           <i data-lucide="users"></i>
           <span>PLAY VS LOCAL FRIEND</span>
@@ -108,17 +99,17 @@
             <i data-lucide="bar-chart-3"></i>
             <span>STATISTICS</span>
           </button>
-          
+
           <button id="btn-menu-achievements" class="menu-btn grid-menu-btn">
             <i data-lucide="award"></i>
             <span>ACHIEVEMENTS</span>
           </button>
-          
+
           <button id="btn-menu-leaderboard" class="menu-btn grid-menu-btn">
             <i data-lucide="crown"></i>
             <span>LEADERBOARD</span>
           </button>
-          
+
           <button id="btn-menu-settings" class="menu-btn grid-menu-btn">
             <i data-lucide="sliders"></i>
             <span>SETTINGS</span>
@@ -133,7 +124,6 @@
     </div>
   </section>
 
-  <!-- SETTINGS VIEW -->
   <section id="screen-settings" class="app-screen">
     <div class="settings-container glass-panel scroll-panel">
       <header class="panel-header">
@@ -144,7 +134,7 @@
       </header>
 
       <div class="settings-form">
-        <!-- Theme Setting -->
+
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Visual Theme</span>
@@ -157,7 +147,6 @@
           </select>
         </div>
 
-        <!-- Volume Slider Setting -->
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Sound Synthesis</span>
@@ -171,7 +160,6 @@
           </div>
         </div>
 
-        <!-- Animation Speed Setting -->
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Animation Velocity</span>
@@ -184,7 +172,6 @@
           </select>
         </div>
 
-        <!-- Particles Toggle Setting -->
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Background Particles</span>
@@ -195,7 +182,6 @@
           </div>
         </div>
 
-        <!-- Board Color Selection Setting -->
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Board Core Color</span>
@@ -210,7 +196,6 @@
           </div>
         </div>
 
-        <!-- Reset Settings Groups -->
         <div class="settings-danger-zone">
           <h3 class="danger-zone-title font-display">DANGER ZONE</h3>
           <div class="danger-buttons-row">
@@ -232,7 +217,6 @@
     </div>
   </section>
 
-  <!-- STATISTICS & HISTORY VIEW -->
   <section id="screen-stats" class="app-screen">
     <div class="stats-container glass-panel scroll-panel">
       <header class="panel-header">
@@ -243,7 +227,7 @@
       </header>
 
       <div class="stats-layout">
-        <!-- Stats summary metrics grid -->
+
         <div class="stats-grid">
           <div class="stats-card-pro">
             <span class="card-label">GAMES PLAYED</span>
@@ -279,15 +263,13 @@
           </div>
         </div>
 
-        <!-- Opening Column Popularity charts -->
         <div class="opening-cols-chart glass-panel">
           <h3 class="chart-title font-display">FAVORITE OPENING COLUMNS</h3>
           <div class="opening-chart-bars" id="opening-columns-chart-container">
-            <!-- Rendered in script.js -->
+
           </div>
         </div>
 
-        <!-- Match History Panel -->
         <div class="history-list-wrapper glass-panel">
           <div class="history-header">
             <h3 class="chart-title font-display">RECENT MATCH HISTORY (LAST 50)</h3>
@@ -310,7 +292,7 @@
                 </tr>
               </thead>
               <tbody id="history-table-body">
-                <!-- Rendered dynamically -->
+
               </tbody>
             </table>
           </div>
@@ -319,7 +301,6 @@
     </div>
   </section>
 
-  <!-- ACHIEVEMENTS VIEW -->
   <section id="screen-achievements" class="app-screen">
     <div class="achievements-container glass-panel scroll-panel">
       <header class="panel-header">
@@ -332,14 +313,12 @@
         </div>
       </header>
 
-      <!-- Achievement Grid of Cards -->
       <div class="achievements-grid" id="achievements-list-container">
-        <!-- Rendered in achievements.js -->
+
       </div>
     </div>
   </section>
 
-  <!-- LEADERBOARD VIEW -->
   <section id="screen-leaderboard" class="app-screen">
     <div class="leaderboard-container glass-panel scroll-panel">
       <header class="panel-header">
@@ -362,18 +341,16 @@
             </tr>
           </thead>
           <tbody id="leaderboard-table-body">
-            <!-- Populated via script.js -->
+
           </tbody>
         </table>
       </div>
     </div>
   </section>
 
-  <!-- ACTIVE GAME SCREEN VIEW -->
   <section id="screen-game" class="app-screen">
     <div class="game-view-container">
-      
-      <!-- Top controls bar -->
+
       <header class="game-control-header">
         <button id="btn-game-back-to-menu" class="action-btn secondary-btn" aria-label="Back to main menu">
           <i data-lucide="home"></i>
@@ -390,7 +367,7 @@
             <div class="token-preview player-1-color glow-red" id="game-turn-token"></div>
             <span class="player-name" id="game-turn-name">Player 1</span>
           </div>
-          <!-- AI Thinking Sub-Panel -->
+
           <div class="ai-thinking-indicator" id="game-ai-thinking-box">
             <span id="ai-thinking-text">AI is thinking...</span>
             <div class="ai-dots-anim">
@@ -402,7 +379,6 @@
         </div>
       </header>
 
-      <!-- Interactive scoreboard header -->
       <section class="game-score-banner stats-bar">
         <div class="stat-card player-1-stat">
           <div class="player-info">
@@ -426,14 +402,12 @@
         </div>
       </section>
 
-      <!-- Active Game Match Series progress indicators -->
       <div class="series-dots-row" id="series-dots-row">
-        <!-- Rendered dynamically -->
+
       </div>
 
-      <!-- Grid Board and Column Overlays -->
       <section class="game-container" id="physical-board-container">
-        <!-- Hover Column Highlights -->
+
         <div class="board-column-hovers" id="game-column-hovers">
           <div class="hover-col" data-col="0"></div>
           <div class="hover-col" data-col="1"></div>
@@ -444,15 +418,13 @@
           <div class="hover-col" data-col="6"></div>
         </div>
 
-        <!-- The physical connect four grid board -->
         <div class="board-wrapper">
           <div class="board-grid" id="game-board-grid">
-            <!-- Populated dynamically via JS -->
+
           </div>
         </div>
       </section>
 
-      <!-- Game Actions Footer buttons -->
       <footer class="game-footer-actions">
         <div class="undo-redo-controls">
           <button id="btn-game-undo" class="action-btn secondary-btn" aria-label="Undo last move">
@@ -473,13 +445,12 @@
     </div>
   </section>
 
-  <!-- MATCH GAME SETUP OVERLAY (Pre-Game) -->
   <div class="modal-overlay" id="setup-modal">
     <div class="modal-card">
       <div class="modal-header-glow" style="background: linear-gradient(90deg, var(--player-1), var(--player-2));"></div>
       <div class="modal-content">
         <h2 class="modal-title font-display">MATCH CONFIGURATION</h2>
-        
+
         <div class="setup-form">
           <div class="setup-group">
             <label for="setup-series-mode"><i data-lucide="medal"></i> Matches Series Type</label>
@@ -510,7 +481,6 @@
     </div>
   </div>
 
-  <!-- VICTORY / GAME OUTCOME OVERLAY DIALOG -->
   <div class="modal-overlay" id="end-modal">
     <div class="modal-card">
       <div class="modal-header-glow" id="end-modal-glow"></div>
@@ -518,15 +488,13 @@
         <i data-lucide="trophy" class="winner-icon" id="end-modal-icon"></i>
         <h2 class="modal-title font-display" id="end-modal-title">PLAYER 1 WINS!</h2>
         <p class="modal-description" id="end-modal-description">A brilliant series of vertical calculations delivers a crushing victory.</p>
-        
-        <!-- XP and leveling rewards box -->
+
         <div class="xp-reward-box" id="end-modal-xp-box">
           <span class="xp-reward-title font-display">REWARDS EARNED</span>
           <span class="xp-reward-val font-display">+<span id="end-modal-xp-gained">0</span> XP</span>
           <span class="level-up-tag font-display" id="end-modal-lvl-tag">LEVEL UP!</span>
         </div>
 
-        <!-- Series detailed scoreboard inside modal -->
         <div class="modal-series-scoreboard" id="end-modal-series-box">
           <div class="score-p1-row"><span class="label">P1 Wins:</span> <span id="modal-score-p1">0</span></div>
           <div class="score-p2-row"><span class="label" id="modal-p2-score-label">AI Wins:</span> <span id="modal-score-p2">0</span></div>
@@ -541,18 +509,17 @@
     </div>
   </div>
 
-  <!-- REPLAY MODE OVERLAY CONTROLS BAR -->
   <div id="replay-controls-overlay" class="replay-overlay-bar">
     <div class="replay-logo-block font-display">
       <i data-lucide="tv"></i>
       <span>REPLAY MODE</span>
     </div>
-    
+
     <div class="replay-middle-controls">
       <button id="btn-replay-prev" class="replay-btn" aria-label="Step Backward"><i data-lucide="chevron-left"></i></button>
       <button id="btn-replay-play-pause" class="replay-btn" aria-label="Play/Pause"><i data-lucide="play" id="replay-play-icon"></i></button>
       <button id="btn-replay-next" class="replay-btn" aria-label="Step Forward"><i data-lucide="chevron-right"></i></button>
-      
+
       <div class="replay-speed-selector">
         <label for="replay-speed-select">Speed</label>
         <select id="replay-speed-select" class="replay-select">
@@ -569,7 +536,6 @@
     </button>
   </div>
 
-  <!-- Main script routing module -->
   <script src="script.js" type="module"></script>
 </body>
 </html>

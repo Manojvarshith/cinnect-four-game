@@ -1,4 +1,4 @@
-// script.js
+
 import { storage } from './js/storage.js';
 import { sounds } from './js/sound.js';
 import { anim } from './js/animation.js';
@@ -8,17 +8,13 @@ import { recordMatch, getLeaderboardData, exportStatsAsJson, getXpRequiredForLev
 import { ACHIEVEMENTS, checkAchievements, unlockAchievement } from './js/achievements.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Lucide Icons
+
   lucide.createIcons();
 
-  /* ==========================================
-     GLOBAL MANAGERS
-     ========================================== */
   const board = new BoardManager();
   const ai = new ConnectFourAI('medium');
 
-  // Match session variables
-  let gameMode = 'ai'; // 'ai', 'pvp', 'demo'
+  let gameMode = 'ai'; 
   let activeDifficulty = 'medium';
   let isAiPlaying = false;
   let matchStartTime = 0;
@@ -26,11 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeReplayMoves = [];
   let isReplayPlaying = false;
   let replayTimeout = null;
-  let currentReplaySpeed = 1500; // ms
+  let currentReplaySpeed = 1500; 
 
-  /* ==========================================
-     DOM QUERIES
-     ========================================== */
   const screens = {
     splash: document.getElementById('screen-splash'),
     menu: document.getElementById('screen-menu'),
@@ -41,13 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
     game: document.getElementById('screen-game')
   };
 
-  // Modals & Panels
   const setupModal = document.getElementById('setup-modal');
   const endModal = document.getElementById('end-modal');
   const replayOverlay = document.getElementById('replay-controls-overlay');
   const achievementToast = document.getElementById('achievement-toast');
 
-  // Settings DOM
   const selectTheme = document.getElementById('setting-theme');
   const selectSpeed = document.getElementById('setting-speed');
   const checkParticles = document.getElementById('setting-particles');
@@ -55,12 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnMute = document.getElementById('btn-sound-mute-toggle');
   const muteIcon = document.getElementById('mute-icon');
 
-  // Setup Modal DOM
   const selectSetupSeries = document.getElementById('setup-series-mode');
   const selectSetupDifficulty = document.getElementById('setup-difficulty-select');
   const difficultyGroup = document.getElementById('setup-difficulty-group');
 
-  // Game UI DOM
   const gameGrid = document.getElementById('game-board-grid');
   const columnHovers = document.getElementById('game-column-hovers');
   const turnCard = document.getElementById('game-turn-card');
@@ -70,14 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const seriesTargetBanner = document.getElementById('series-target-banner');
   const seriesDotsRow = document.getElementById('series-dots-row');
 
-  // Scoreboard
   const p1ScoreEl = document.getElementById('game-p1-score');
-  const p2ScoreEl = document.getElementById('game-tie-score'); // Draws
-  const p3ScoreEl = document.getElementById('game-p2-score'); // Player 2/AI
+  const p2ScoreEl = document.getElementById('game-tie-score'); 
+  const p3ScoreEl = document.getElementById('game-p2-score'); 
   const p2Label = document.getElementById('game-p2-label');
   const p2TokenPreview = document.getElementById('game-p2-token-preview');
 
-  // Profiles UI
   const menuProfileName = document.getElementById('menu-profile-name');
   const menuProfileRank = document.getElementById('menu-profile-rank');
   const menuProfileLvl = document.getElementById('menu-profile-lvl');
@@ -85,26 +72,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuProfileXpMax = document.getElementById('menu-profile-xp-max');
   const menuProfileXpFill = document.getElementById('menu-profile-xp-fill');
 
-  /* ==========================================
-     VIEW NAVIGATION CONTROLLER
-     ========================================== */
   function showScreen(screenKey) {
     sounds.playClick();
-    
-    // Deactivate all screens
+
     Object.keys(screens).forEach(key => {
       screens[key].classList.remove('screen-active');
     });
 
-    // Stop loops by default
     anim.stopBgParticles();
 
-    // Activate target
     if (screens[screenKey]) {
       screens[screenKey].classList.add('screen-active');
     }
 
-    // Custom Screen Actions
     if (screenKey === 'menu') {
       const prefs = storage.getPreferences();
       if (prefs.particles === 'on') {
@@ -120,32 +100,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /* ==========================================
-     INITIAL PREFERENCE SETUP
-     ========================================== */
   function applyPreferences() {
     const prefs = storage.getPreferences();
-    
-    // 1. Theme Configuration
+
     applyTheme(prefs.theme);
     selectTheme.value = prefs.theme;
 
-    // 2. Sound Configuration
     sounds.setVolume(prefs.volume);
     rangeVolume.value = prefs.volume;
     const isMuted = prefs.sound === 'off';
     sounds.setMute(isMuted);
     updateMuteIcon(isMuted);
 
-    // 3. Speed Configuration
     applyAnimationSpeed(prefs.speed);
     selectSpeed.value = prefs.speed;
 
-    // 4. Board Color Configuration
     applyBoardColor(prefs.boardColor);
     highlightSwatch(prefs.boardColor);
 
-    // 5. Particles config
     checkParticles.checked = prefs.particles === 'on';
     if (prefs.particles === 'on' && screens.menu.classList.contains('screen-active')) {
       anim.startBgParticles();
@@ -157,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (theme === 'light') {
       document.body.classList.add('light-mode', 'dark-theme-forced');
     } else if (theme === 'dark') {
-      // Dark mode is default, force dark theme variables
+
       document.body.classList.add('dark-theme-forced');
     } else {
       document.body.classList.add('system-theme-active');
@@ -168,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let factor = 1;
     if (speed === 'slow') factor = 2;
     if (speed === 'fast') factor = 0.4;
-    
+
     document.documentElement.style.setProperty('--anim-speed-factor', factor);
   }
 
@@ -196,26 +168,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ==========================================
-     PROFILE AND LEVEL PRESENTATION
-     ========================================== */
   function renderMenuProfile() {
     const profile = storage.getProfile();
     menuProfileName.textContent = `PLAYER LEVEL ${profile.level}`;
     menuProfileRank.textContent = profile.rank.toUpperCase();
     menuProfileLvl.textContent = profile.level;
-    
+
     const xpMax = getXpRequiredForLevel(profile.level);
     menuProfileXpCurr.textContent = profile.xp;
     menuProfileXpMax.textContent = xpMax;
-    
+
     const percentage = Math.min((profile.xp / xpMax) * 100, 100);
     menuProfileXpFill.style.width = `${percentage}%`;
   }
 
-  /* ==========================================
-     BOARD RENDERING ENGINE
-     ========================================== */
   function createBoardDOM() {
     gameGrid.innerHTML = '';
     for (let r = 0; r < ROWS; r++) {
@@ -234,8 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
       for (let c = 0; c < COLS; c++) {
         const slot = gameGrid.querySelector(`[data-row="${r}"][data-col="${c}"]`);
         const value = board.grid[r][c];
-        
-        // Clear slot
+
         slot.innerHTML = '';
 
         if (value !== 0) {
@@ -251,14 +216,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function animateDiscdrop(move) {
     const slot = gameGrid.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
-    slot.innerHTML = ''; // clear
+    slot.innerHTML = ''; 
 
     const chip = document.createElement('div');
     chip.classList.add('chip', move.player === 1 ? 'p1' : 'p2', 'chip-animate-drop');
     slot.appendChild(chip);
     sounds.playDrop();
 
-    // Remove drop animation class after execution to prevent loops on scroll/update
     setTimeout(() => {
       chip.classList.remove('chip-animate-drop');
     }, 550 * parseFloat(document.documentElement.style.getPropertyValue('--anim-speed-factor') || 1));
@@ -271,13 +235,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-game-redo').disabled = board.redoStack.length === 0;
   }
 
-  /* ==========================================
-     GAME LOOP EVENTS
-     ========================================== */
   function executeMove(col) {
     if (board.isGameOver || isAiPlaying) return;
 
-    // Check opening column statistic log (first move of match)
     if (board.historyStack.length === 0) {
       board.firstMoveCol = col;
     }
@@ -287,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     animateDiscdrop(move);
 
-    // Evaluate Win/Tie conditions
     const winDetails = board.checkWin();
     if (winDetails) {
       triggerRoundOver(winDetails);
@@ -299,11 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Switch turns
     board.currentPlayer = board.currentPlayer === 1 ? 2 : 1;
     updateGameTurnUI();
 
-    // Trigger AI or Demo loops
     if (gameMode === 'ai' && board.currentPlayer === 2) {
       triggerAiWorkflow();
     } else if (gameMode === 'demo') {
@@ -312,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateGameTurnUI() {
-    // Normal indicators
+
     turnToken.className = 'token-preview';
     turnCard.className = 'turn-indicator-card';
     turnToken.style.display = 'block';
@@ -332,18 +289,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function triggerAiWorkflow() {
     isAiPlaying = true;
-    
-    // Show AI Thinking banner
+
     turnToken.style.display = 'none';
     turnName.style.display = 'none';
     aiThinkingBox.style.display = 'flex';
 
-    // Speed setting determines AI delay
     const speed = storage.getPreferences().speed;
     const thinkingDelay = speed === 'slow' ? 2400 : (speed === 'fast' ? 400 : 1200);
 
     setTimeout(() => {
-      // Demo loop plays AI VS AI (Player 1 is easy, Player 2 is hard)
+
       if (gameMode === 'demo') {
         const diff = board.currentPlayer === 1 ? 'easy' : 'impossible';
         ai.setDifficulty(diff);
@@ -351,19 +306,17 @@ document.addEventListener('DOMContentLoaded', () => {
         ai.setDifficulty(activeDifficulty);
       }
 
-      // Compute board state
       const bestMove = ai.getMove(board.grid, 1, 2);
-      
-      // Hide AI thinking banner
+
       aiThinkingBox.style.display = 'none';
       isAiPlaying = false;
 
       if (bestMove !== -1) {
-        // Place disc
+
         const move = board.placeDisc(bestMove);
         if (move) {
           animateDiscdrop(move);
-          
+
           const winDetails = board.checkWin();
           if (winDetails) {
             triggerRoundOver(winDetails);
@@ -375,11 +328,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
-          // Toggle player turn
           board.currentPlayer = board.currentPlayer === 1 ? 2 : 1;
           updateGameTurnUI();
 
-          // Keep playing demo mode if applicable
           if (gameMode === 'demo') {
             triggerAiWorkflow();
           }
@@ -388,22 +339,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }, thinkingDelay);
   }
 
-  /* ==========================================
-     ROUND AND SERIES CONCLUSION
-     ========================================== */
   function triggerRoundOver(result) {
     board.isGameOver = true;
     anim.triggerCameraShake(document.getElementById('physical-board-container'));
 
-    // Compute duration
     const duration = Math.floor((Date.now() - matchStartTime) / 1000);
 
-    // Save logs and stats on completed match
     const summary = board.recordRoundOutcome(result.winner);
-    
-    // Check if this rounds finishes the series
+
     let seriesComplete = board.seriesWinner !== null;
-    
+
     if (result.winner === 'tie') {
       sounds.playDraw();
       showEndModal('tie', summary, duration);
@@ -417,7 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showEndModal('p2', summary, duration);
       }
 
-      // Highlight winning disc lines
       result.cells.forEach(([r, c]) => {
         const slot = gameGrid.querySelector(`[data-row="${r}"][data-col="${c}"]`);
         const chip = slot.querySelector('.chip');
@@ -442,7 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
       board.replayMoves
     );
 
-    // Check achievement locks
     const newAchievements = checkAchievements();
     if (newAchievements.length > 0) {
       newAchievements.forEach((badge, index) => {
@@ -450,15 +393,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Modal Content Configuration
     const modalGlow = document.getElementById('end-modal-glow');
     const modalIcon = document.getElementById('end-modal-icon');
     const modalTitle = document.getElementById('end-modal-title');
     const modalDesc = document.getElementById('end-modal-description');
-    
+
     const xpGainedEl = document.getElementById('end-modal-xp-gained');
     const lvlTag = document.getElementById('end-modal-lvl-tag');
-    
+
     const scoreP1Val = document.getElementById('modal-score-p1');
     const scoreP2Val = document.getElementById('modal-score-p2');
     const labelP2 = document.getElementById('modal-p2-score-label');
@@ -492,7 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     lucide.createIcons();
 
-    // Open Modal with short delay
     setTimeout(() => {
       endModal.classList.add('open');
     }, 1200);
@@ -516,10 +457,9 @@ document.addEventListener('DOMContentLoaded', () => {
       seriesDotsRow.style.display = 'none';
       return;
     }
-    
+
     seriesDotsRow.style.display = 'flex';
-    
-    // Draw dots for Player 1
+
     const p1Container = document.createElement('div');
     p1Container.classList.add('series-faction');
     for (let i = 0; i < targetWins; i++) {
@@ -528,14 +468,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (i < board.seriesScores.p1) dot.classList.add('earned-p1');
       p1Container.appendChild(dot);
     }
-    
+
     const separator = document.createElement('span');
     separator.textContent = 'VS';
     separator.style.fontSize = '10px';
     separator.style.fontWeight = 'bold';
     separator.style.color = 'var(--text-muted)';
-    
-    // Draw dots for Player 2
+
     const p2Container = document.createElement('div');
     p2Container.classList.add('series-faction');
     for (let i = 0; i < targetWins; i++) {
@@ -550,9 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
     seriesDotsRow.appendChild(p2Container);
   }
 
-  /* ==========================================
-     SETTINGS VIEWS & LOGIC resets
-     ========================================== */
   selectTheme.addEventListener('change', (e) => {
     storage.savePreferences({ theme: e.target.value });
     applyTheme(e.target.value);
@@ -582,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
     storage.savePreferences({ sound: nextMuted ? 'off' : 'on' });
     sounds.setMute(nextMuted);
     updateMuteIcon(nextMuted);
-    
+
     if (!nextMuted && prefs.volume === 0) {
       storage.savePreferences({ volume: 0.5 });
       rangeVolume.value = 0.5;
@@ -605,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Color Swatch buttons click listeners
   const colorSwatchesContainer = document.querySelector('.color-palette-selector');
   colorSwatchesContainer.addEventListener('click', (e) => {
     const color = e.target.dataset.color;
@@ -617,7 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Danger settings buttons
   document.getElementById('btn-reset-stats').addEventListener('click', () => {
     if (confirm("Reset match statistics? Profiles and achievements will remain.")) {
       localStorage.removeItem('c4_pro_stats');
@@ -641,30 +575,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* ==========================================
-     STATISTICS DASHBOARD GENERATOR
-     ========================================== */
   function renderStatsDashboard() {
     const stats = storage.getStats();
-    
+
     document.getElementById('stat-games-played').textContent = stats.gamesPlayed;
     document.getElementById('stat-wins').textContent = stats.wins;
     document.getElementById('stat-losses').textContent = stats.losses;
     document.getElementById('stat-draws').textContent = stats.draws;
     document.getElementById('stat-longest-streak').textContent = stats.longestStreak;
-    
-    // Win rate percentage
+
     const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
     document.getElementById('stat-win-rate').textContent = `${winRate}%`;
 
-    // Average match time
     const avgSec = stats.gamesPlayed > 0 ? Math.round(stats.totalMatchTime / stats.gamesPlayed) : 0;
     document.getElementById('stat-avg-time').textContent = `${avgSec}s`;
 
-    // Fastest Win
     document.getElementById('stat-fastest-win').textContent = stats.fastestWin !== null ? `${stats.fastestWin}s` : 'N/A';
 
-    // Render Favorite Opening Column Bar Chart
     const openingContainer = document.getElementById('opening-columns-chart-container');
     openingContainer.innerHTML = '';
     const maxVal = Math.max(...stats.openingCols, 1);
@@ -675,7 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const row = document.createElement('div');
       row.classList.add('chart-bar-row');
-      
+
       row.innerHTML = `
         <span class="chart-label">Column ${c + 1}</span>
         <div class="chart-track">
@@ -686,7 +613,6 @@ document.addEventListener('DOMContentLoaded', () => {
       openingContainer.appendChild(row);
     }
 
-    // Render Match History Table
     const tableBody = document.getElementById('history-table-body');
     tableBody.innerHTML = '';
     const history = storage.getHistory();
@@ -711,25 +637,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ==========================================
-     ACHIEVEMENTS PANEL RENDERER
-     ========================================== */
   function renderAchievementsGrid() {
     const container = document.getElementById('achievements-list-container');
     container.innerHTML = '';
     const unlocked = storage.getAchievements();
 
-    // Update ratio text
     document.getElementById('achievements-count-ratio').textContent = `${unlocked.length}/${ACHIEVEMENTS.length} UNLOCKED`;
 
     ACHIEVEMENTS.forEach(badge => {
       const isUnlocked = unlocked.includes(badge.id);
-      
+
       const card = document.createElement('div');
       card.classList.add('achievement-card');
       if (isUnlocked) card.classList.add('unlocked');
 
-      // Swap icons based on config
       let iconName = isUnlocked ? badge.icon : 'lock';
 
       card.innerHTML = `
@@ -748,9 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
   }
 
-  /* ==========================================
-     LOCAL LEADERBOARDS
-     ========================================== */
   function renderLeaderboard() {
     const tableBody = document.getElementById('leaderboard-table-body');
     tableBody.innerHTML = '';
@@ -778,40 +696,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ==========================================
-     REPLAY MATCH SYSTEM
-     ========================================== */
   function startReplayWorkflow(matchLog) {
     sounds.playClick();
     showScreen('game');
 
-    // Activate Replay Bar Overlay
     replayOverlay.classList.add('active');
-    
-    // Force AI demo controls off
+
     isAiPlaying = false;
-    
-    // Clear matches details
+
     board.startNewMatch('unlimited');
     board.init();
     createBoardDOM();
     renderGridState();
 
-    // Load moves
     activeReplayMoves = [...matchLog.moves];
     activeReplayIndex = 0;
     isReplayPlaying = false;
-    
-    // Game scoreboard setups
+
     p2Label.textContent = 'REPLAY OPPONENT';
     p1ScoreEl.textContent = '0';
     p3ScoreEl.textContent = '0';
     p2ScoreEl.textContent = '0';
-    
-    // Target banner override
+
     seriesTargetBanner.textContent = 'REPLAY RECORDING';
     seriesDotsRow.style.display = 'none';
-    
+
     updateReplayBannerState();
     updateReplayButtons();
   }
@@ -854,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateReplayButtons() {
     document.getElementById('btn-replay-prev').disabled = activeReplayIndex <= 0;
     document.getElementById('btn-replay-next').disabled = activeReplayIndex >= activeReplayMoves.length;
-    
+
     const playIcon = document.getElementById('replay-play-icon');
     if (isReplayPlaying) {
       playIcon.setAttribute('data-lucide', 'pause');
@@ -893,14 +802,11 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('stats');
   }
 
-  /* ==========================================
-     SETUP MODALS & ACTIONS CALLBACKS
-     ========================================== */
   function openGameSetupModal(mode) {
     gameMode = mode;
     setupModal.classList.add('open');
     sounds.playClick();
-    
+
     if (gameMode === 'pvp') {
       difficultyGroup.style.display = 'none';
     } else {
@@ -916,18 +822,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-setup-start').addEventListener('click', () => {
     setupModal.classList.remove('open');
     sounds.playClick();
-    
+
     activeDifficulty = selectSetupDifficulty.value;
     const series = selectSetupSeries.value;
 
-    // Reset scores & logic
     board.startNewMatch(series);
     createBoardDOM();
     renderGridState();
 
     matchStartTime = Date.now();
-    
-    // Label configurations
+
     if (gameMode === 'ai') {
       p2Label.textContent = `AI (${activeDifficulty.toUpperCase()})`;
     } else if (gameMode === 'pvp') {
@@ -936,7 +840,6 @@ document.addEventListener('DOMContentLoaded', () => {
       p2Label.textContent = 'DEMO AI';
     }
 
-    // Set series banner text
     const textDict = { unlimited: 'SINGLE MATCH', bo3: 'BEST OF 3 SERIES', bo5: 'BEST OF 5 SERIES', bo7: 'BEST OF 7 SERIES' };
     seriesTargetBanner.textContent = textDict[series];
 
@@ -948,21 +851,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateGameTurnUI();
     renderSeriesProgressDots();
 
-    // Trigger AI workflow if AI Demo mode begins
     if (gameMode === 'demo') {
       triggerAiWorkflow();
     }
   });
 
-  /* ==========================================
-     UI CLICKS EVENT BINDINGS
-     ========================================== */
-
-  // Screen swap buttons
   document.getElementById('btn-menu-vs-ai').addEventListener('click', () => openGameSetupModal('ai'));
   document.getElementById('btn-menu-vs-friend').addEventListener('click', () => openGameSetupModal('pvp'));
   document.getElementById('btn-menu-ai-demo').addEventListener('click', () => openGameSetupModal('demo'));
-  
+
   document.getElementById('btn-menu-stats').addEventListener('click', () => showScreen('stats'));
   document.getElementById('btn-menu-achievements').addEventListener('click', () => showScreen('achievements'));
   document.getElementById('btn-menu-leaderboard').addEventListener('click', () => showScreen('leaderboard'));
@@ -974,14 +871,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Panel back buttons
   document.getElementById('btn-settings-back').addEventListener('click', () => showScreen('menu'));
   document.getElementById('btn-stats-back').addEventListener('click', () => showScreen('menu'));
   document.getElementById('btn-achievements-back').addEventListener('click', () => showScreen('menu'));
   document.getElementById('btn-leaderboard-back').addEventListener('click', () => showScreen('menu'));
 
   document.getElementById('btn-game-back-to-menu').addEventListener('click', () => {
-    // If replay active, exit replay first
+
     if (replayOverlay.classList.contains('active')) {
       exitReplayMode();
       return;
@@ -989,33 +885,28 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('menu');
   });
 
-  // Action reset panels inside game board
   document.getElementById('btn-game-restart').addEventListener('click', () => {
     sounds.playClick();
-    
-    // Check if in replay mode
+
     if (replayOverlay.classList.contains('active')) return;
 
     board.startNewRound();
     renderGridState();
     matchStartTime = Date.now();
     updateGameTurnUI();
-    
+
     if (gameMode === 'demo') {
       triggerAiWorkflow();
     }
   });
 
-  // Undo & Redo UI clicks
   document.getElementById('btn-game-undo').addEventListener('click', () => {
     sounds.playClick();
-    
-    // In AI mode, we undo twice to undo the AI's move AND the player's last move!
+
     if (gameMode === 'ai') {
       const aiMove = board.undo();
       const p1Move = board.undo();
-      
-      // If we undo we also adjust opening column variables
+
       if (board.historyStack.length === 0) {
         board.firstMoveCol = -1;
       }
@@ -1048,7 +939,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Column clicks (Interactive gameplay)
   columnHovers.addEventListener('click', (e) => {
     const colStr = e.target.getAttribute('data-col');
     if (colStr !== null && !board.isGameOver && !isAiPlaying && !replayOverlay.classList.contains('active')) {
@@ -1056,7 +946,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Grid hover previews (indicating column slots drop positions)
   columnHovers.addEventListener('mouseover', (e) => {
     const colStr = e.target.getAttribute('data-col');
     if (colStr !== null && !board.isGameOver && !isAiPlaying && !replayOverlay.classList.contains('active')) {
@@ -1077,7 +966,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Modals outcome buttons
   document.getElementById('btn-modal-view-stats').addEventListener('click', () => {
     endModal.classList.remove('open');
     anim.stopConfetti();
@@ -1094,8 +982,7 @@ document.addEventListener('DOMContentLoaded', () => {
     endModal.classList.remove('open');
     anim.stopConfetti();
     sounds.playClick();
-    
-    // Check if series finished and reset scores
+
     if (board.seriesWinner !== null) {
       board.startNewMatch(board.seriesMode);
       p1ScoreEl.textContent = '0';
@@ -1116,7 +1003,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Replay controllers mapping
   document.getElementById('btn-replay-prev').addEventListener('click', () => {
     pauseReplay();
     stepReplayBackward();
@@ -1145,59 +1031,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-replay-exit').addEventListener('click', exitReplayMode);
 
-  // Statistics Export Trigger
   document.getElementById('btn-export-stats').addEventListener('click', exportStatsAsJson);
 
-  // Match History Replay bindings (attaches listener to the dynamically created list)
   const historyTable = document.getElementById('history-table-body');
   historyTable.addEventListener('click', (e) => {
     const idx = e.target.getAttribute('data-history-idx');
     if (idx !== null) {
       const match = storage.getHistory()[parseInt(idx)];
-      
-      // Convert moves coordinates sequence back into column-based moves array
-      // Re-initialize a blank board state and populate match details
+
       const replayItem = {
-        moves: match.movesList || [3, 2, 4, 3, 2, 4, 2, 1] // fallback if movesList is empty
+        moves: match.movesList || [3, 2, 4, 3, 2, 4, 2, 1] 
       };
 
-      // Since we need the list of moves in that history:
-      // Wait, let's make sure we log the movesList sequence during recordMatch!
-      // Ah! In stats.js, does `recordMatch` log the movesList?
-      // Let's modify `recordMatch` inside stats.js or pass board.replayMoves.
-      // Wait, `recordMatch` takes parameters. Let's see what we passed to it in triggerRoundOver:
-      // `outcome, gameMode, difficulty, moves, duration, openingCol`
-      // Wait, we can pass board.replayMoves as well!
-      // Let's check how we record it in stats.js. Yes, stats.js doesn't currently save the movesList.
-      // Wait! Let's modify `recordMatch` in stats.js to support saving the movesList.
-      // Let's see: we can do a replace file content to add `movesList` support to recordMatch in stats.js.
-      // Let's do that quickly to support automated replays!
     }
   });
 
-  // Bind historical item clicks to launch replays
   document.getElementById('history-table-body').addEventListener('click', (e) => {
     const idx = e.target.getAttribute('data-history-idx');
     if (idx !== null) {
       const matchIdx = parseInt(idx);
       const match = storage.getHistory()[matchIdx];
-      // Check if it has a moves list (our script.js logs it now)
+
       startReplayWorkflow(match);
     }
   });
 
-  /* ==========================================
-     START PLAYGROUND
-     ========================================== */
-  
-  // Confetti particles canvas initialization
   anim.initConfetti(document.getElementById('confetti-canvas'));
   anim.initBgParticles(document.getElementById('bg-particle-canvas'));
-  
-  // Apply visual configurations
+
   applyPreferences();
 
-  // Run Splash Loader animation fadeout
   setTimeout(() => {
     screens.splash.style.display = 'none';
     showScreen('menu');

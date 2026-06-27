@@ -1,16 +1,13 @@
-/* ==========================================================================
-   CONNECT FOUR PRO - CORE STYLESHEET
-   ========================================================================== */
 
-/* 1. Theme Configuration & Variables */
+
 :root {
-  /* HSL Tailored Neon Dark Theme (Default) */
+
   --bg-color: #0b0f19;
   --bg-gradient: radial-gradient(circle at 50% 50%, #111827 0%, #030712 100%);
   --panel-bg: rgba(17, 24, 39, 0.75);
   --panel-border: rgba(255, 255, 255, 0.08);
   --panel-shadow: rgba(0, 0, 0, 0.4);
-  
+
   --text-primary: #f9fafb;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
@@ -21,11 +18,11 @@
   --player-2-glow: rgba(0, 240, 255, 0.6);
   --tie-color: #ffb800;
   --tie-glow: rgba(255, 184, 0, 0.6);
-  
+
   --btn-primary-bg: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
   --btn-primary-hover: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
   --btn-primary-shadow: rgba(79, 70, 229, 0.4);
-  
+
   --board-color: #1e293b;
   --board-shadow: rgba(0, 0, 0, 0.6);
   --cell-empty: #0f172a;
@@ -33,18 +30,16 @@
   --font-display: 'Orbitron', system-ui, -apple-system, sans-serif;
   --font-body: 'Outfit', system-ui, -apple-system, sans-serif;
 
-  /* Animation speed multipliers */
   --anim-speed-factor: 1;
 }
 
-/* Light Mode Overrides */
 .light-mode {
   --bg-color: #f3f4f6;
   --bg-gradient: radial-gradient(circle at 50% 50%, #f9fafb 0%, #e5e7eb 100%);
   --panel-bg: rgba(255, 255, 255, 0.8);
   --panel-border: rgba(0, 0, 0, 0.08);
   --panel-shadow: rgba(0, 0, 0, 0.08);
-  
+
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-muted: #9ca3af;
@@ -53,17 +48,16 @@
   --player-1-glow: rgba(225, 29, 72, 0.35);
   --player-2: #0891b2;
   --player-2-glow: rgba(8, 145, 178, 0.35);
-  
+
   --btn-primary-bg: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
   --btn-primary-hover: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
   --btn-primary-shadow: rgba(59, 130, 246, 0.25);
-  
+
   --board-color: #e5e7eb;
   --board-shadow: rgba(0, 0, 0, 0.1);
   --cell-empty: #ffffff;
 }
 
-/* System Theme Sync */
 @media (prefers-color-scheme: light) {
   body:not(.dark-theme-forced).system-theme-active {
     --bg-color: #f3f4f6;
@@ -71,7 +65,7 @@
     --panel-bg: rgba(255, 255, 255, 0.8);
     --panel-border: rgba(0, 0, 0, 0.08);
     --panel-shadow: rgba(0, 0, 0, 0.08);
-    
+
     --text-primary: #111827;
     --text-secondary: #4b5563;
     --text-muted: #9ca3af;
@@ -80,20 +74,17 @@
     --player-1-glow: rgba(225, 29, 72, 0.35);
     --player-2: #0891b2;
     --player-2-glow: rgba(8, 145, 178, 0.35);
-    
+
     --btn-primary-bg: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
     --btn-primary-hover: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
     --btn-primary-shadow: rgba(59, 130, 246, 0.25);
-    
+
     --board-color: #e5e7eb;
     --board-shadow: rgba(0, 0, 0, 0.1);
     --cell-empty: #ffffff;
   }
 }
 
-/* ==========================================================================
-   GLOBAL RESET & LAYOUTS
-   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -130,7 +121,6 @@ body {
   z-index: 99;
 }
 
-/* Custom Scrollbars */
 .scroll-panel::-webkit-scrollbar {
   width: 6px;
 }
@@ -149,7 +139,6 @@ body {
   background: rgba(0, 0, 0, 0.1);
 }
 
-/* Glassmorphism Panel styles */
 .glass-panel {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
@@ -160,14 +149,10 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Font styles */
 .font-display {
   font-family: var(--font-display);
 }
 
-/* ==========================================================================
-   APP SCREENS (SPA SCREEN SYSTEM)
-   ========================================================================== */
 .app-screen {
   display: none;
   width: 100%;
@@ -194,9 +179,6 @@ body {
   }
 }
 
-/* ==========================================================================
-   SPLASH SCREEN
-   ========================================================================== */
 #screen-splash {
   height: 100vh;
   justify-content: center;
@@ -276,9 +258,6 @@ body {
   100% { transform: scale(1.15); opacity: 0.45; }
 }
 
-/* ==========================================================================
-   MAIN MENU VIEW
-   ========================================================================== */
 .menu-container {
   display: flex;
   flex-direction: column;
@@ -335,7 +314,6 @@ body {
   margin-top: 6px;
 }
 
-/* Menu Profile Summary Panel */
 .menu-profile-card {
   display: flex;
   align-items: center;
@@ -425,7 +403,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* Menu Navigation buttons layout */
 .menu-options {
   display: flex;
   flex-direction: column;
@@ -523,9 +500,6 @@ body {
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
 }
 
-/* ==========================================================================
-   PANELS CONFIGURATION (SETTINGS, STATS, ACHIEVEMENTS)
-   ========================================================================== */
 .scroll-panel {
   max-height: 85vh;
   overflow-y: auto;
@@ -566,7 +540,6 @@ body {
   letter-spacing: 1px;
 }
 
-/* Settings Form Styles */
 .settings-form {
   display: flex;
   flex-direction: column;
@@ -606,7 +579,6 @@ body {
   width: 220px;
 }
 
-/* Custom Selection Dropdowns */
 .select-control {
   background: var(--bg-color);
   border: 1px solid var(--panel-border);
@@ -620,7 +592,6 @@ body {
   cursor: pointer;
 }
 
-/* Volume Slider with Mute button Group */
 .volume-slider-group {
   display: flex;
   align-items: center;
@@ -641,7 +612,6 @@ body {
   cursor: pointer;
 }
 
-/* Checkbox Toggle */
 .checkbox-control {
   width: 18px;
   height: 18px;
@@ -649,7 +619,6 @@ body {
   cursor: pointer;
 }
 
-/* Color palettes button rows */
 .color-palette-selector {
   display: flex;
   gap: 10px;
@@ -674,7 +643,6 @@ body {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
 }
 
-/* Danger Zone Reset Blocks */
 .settings-danger-zone {
   margin-top: 15px;
   padding-top: 20px;
@@ -745,9 +713,6 @@ body {
   box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
 }
 
-/* ==========================================================================
-   STATISTICS LAYOUT & HISTORY
-   ========================================================================== */
 .stats-layout {
   display: flex;
   flex-direction: column;
@@ -792,7 +757,6 @@ body {
   font-weight: 900;
 }
 
-/* Opening columns horizontal bar charts */
 .opening-cols-chart {
   padding: 20px;
 }
@@ -850,7 +814,6 @@ body {
   font-weight: 700;
 }
 
-/* Match History log tables */
 .history-list-wrapper {
   padding: 20px;
 }
@@ -915,9 +878,6 @@ body {
   color: #fff;
 }
 
-/* ==========================================================================
-   ACHIEVEMENTS CARD GRID
-   ========================================================================== */
 .achievements-header-title {
   display: flex;
   justify-content: space-between;
@@ -1008,7 +968,6 @@ body {
   font-family: var(--font-display);
 }
 
-/* Unlocked states */
 .achievement-card.unlocked {
   border-color: rgba(0, 240, 255, 0.2);
 }
@@ -1032,9 +991,6 @@ body {
   color: var(--player-1);
 }
 
-/* ==========================================================================
-   LOCAL LEADERBOARD HALL OF FAME
-   ========================================================================== */
 .leaderboard-layout {
   padding: 10px;
 }
@@ -1089,9 +1045,6 @@ body {
   color: #b45309;
 }
 
-/* ==========================================================================
-   ACTIVE GAME LAYOUT SCREEN
-   ========================================================================== */
 .game-view-container {
   display: flex;
   flex-direction: column;
@@ -1126,7 +1079,6 @@ body {
   text-shadow: 0 0 6px var(--player-2-glow);
 }
 
-/* Turn Display Box */
 #game-turn-card {
   align-self: end;
   width: 100%;
@@ -1159,7 +1111,6 @@ body {
   50% { opacity: 1; }
 }
 
-/* Series Win dots */
 .series-dots-row {
   display: flex;
   justify-content: center;
@@ -1191,7 +1142,6 @@ body {
   box-shadow: 0 0 10px var(--player-2-glow);
 }
 
-/* Columns Hover overlay triggers */
 .board-column-hovers {
   position: absolute;
   top: 24px;
@@ -1224,7 +1174,6 @@ body {
   z-index: 10;
 }
 
-/* Connect Four Board casing */
 .board-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -1237,7 +1186,6 @@ body {
   transition: background-color 0.4s ease;
 }
 
-/* Individual Cell Slot */
 .cell-slot {
   aspect-ratio: 1;
   background: var(--cell-empty);
@@ -1254,7 +1202,6 @@ body {
               0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
-/* Chip Token drops styles */
 .chip {
   width: 100%;
   height: 100%;
@@ -1277,7 +1224,6 @@ body {
   filter: drop-shadow(0 0 6px var(--player-2-glow));
 }
 
-/* Bouncing Physics Drop Animation */
 .chip-animate-drop {
   animation: dropBounce calc(0.5s * var(--anim-speed-factor)) cubic-bezier(0.25, 0.9, 0.4, 1) forwards;
 }
@@ -1305,12 +1251,10 @@ body {
   }
 }
 
-/* Win pulse animations */
 .chip.win-highlight {
   animation: winningPulse 1s infinite alternate ease-in-out;
 }
 
-/* Undo / Redo Actions Panel */
 .game-footer-actions {
   display: flex;
   justify-content: space-between;
@@ -1367,16 +1311,12 @@ body {
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Responsive button texts helper */
 @media (max-width: 420px) {
   .btn-text-responsive {
     display: none;
   }
 }
 
-/* ==========================================================================
-   MODAL DIALOGS OVERLAYS
-   ========================================================================== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1462,7 +1402,6 @@ body {
   margin-bottom: 20px;
 }
 
-/* XP Rewards inside modals */
 .xp-reward-box {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--panel-border);
@@ -1508,7 +1447,6 @@ body {
   box-shadow: 0 0 8px var(--player-1-glow);
 }
 
-/* Series results inside modals */
 .modal-series-scoreboard {
   width: 100%;
   display: grid;
@@ -1528,7 +1466,6 @@ body {
   background: rgba(0, 0, 0, 0.01);
 }
 
-/* Actions inside Modal */
 .end-modal-actions {
   display: flex;
   gap: 10px;
@@ -1539,7 +1476,6 @@ body {
   flex: 1;
 }
 
-/* Setup configuration modal details */
 .setup-form {
   width: 100%;
   display: flex;
@@ -1577,9 +1513,6 @@ body {
   justify-content: flex-end;
 }
 
-/* ==========================================================================
-   REPLAY CONTROLS OVERLAY BAR
-   ========================================================================== */
 .replay-overlay-bar {
   position: fixed;
   bottom: 0;
@@ -1668,9 +1601,6 @@ body {
   font-family: var(--font-body);
 }
 
-/* ==========================================================================
-   ACHIEVEMENTS TOAST ALERTS
-   ========================================================================== */
 .toast-card {
   position: fixed;
   top: -100px;
@@ -1751,11 +1681,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* ==========================================================================
-   INTERACTIVE ANIME OVERLAYS & MODIFIERS
-   ========================================================================== */
-
-/* Camera Shake on Victory */
 .camera-shake {
   animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both;
   transform: translate3d(0, 0, 0);
@@ -1770,7 +1695,6 @@ body {
   40%, 60% { transform: translate3d(6px, 0, 0); }
 }
 
-/* Winning chip pulse glow */
 @keyframes winningPulse {
   0% {
     transform: scale(1);

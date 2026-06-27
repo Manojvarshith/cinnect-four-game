@@ -63,22 +63,22 @@ class SoundManager {
   }
 
   playDrop() {
-    
+
     this.playOsc('sine', 150, 60, 0.25, 0.5);
   }
 
   playHover() {
-    
+
     this.playOsc('sine', 600, 600, 0.04, 0.05);
   }
 
   playClick() {
-    
+
     this.playOsc('triangle', 300, 500, 0.08, 0.15);
   }
 
   playThemeToggle() {
-    
+
     this.playOsc('sine', 200, 450, 0.3, 0.25);
   }
 
@@ -92,12 +92,12 @@ class SoundManager {
     notes.forEach((freq, index) => {
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
-      
+
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, t + index * 0.06);
       gain.gain.setValueAtTime(0.12, t + index * 0.06);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + index * 0.06 + 0.25);
-      
+
       osc.connect(gain);
       gain.connect(this.masterGain);
       osc.start(t + index * 0.06);
@@ -115,12 +115,12 @@ class SoundManager {
     notes.forEach((freq, index) => {
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
-      
+
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, t + index * 0.08);
       gain.gain.setValueAtTime(0.2, t + index * 0.08);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + index * 0.08 + 0.4);
-      
+
       osc.connect(gain);
       gain.connect(this.masterGain);
       osc.start(t + index * 0.08);
@@ -138,12 +138,12 @@ class SoundManager {
     notes.forEach((freq, index) => {
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
-      
+
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(freq, t + index * 0.15);
       gain.gain.setValueAtTime(0.15, t + index * 0.15);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + index * 0.15 + 0.3);
-      
+
       osc.connect(gain);
       gain.connect(this.masterGain);
       osc.start(t + index * 0.15);
@@ -152,7 +152,7 @@ class SoundManager {
   }
 
   playDraw() {
-    
+
     this.playOsc('triangle', 293.66, 293.66, 0.2, 0.15);
     setTimeout(() => {
       this.playOsc('triangle', 220, 220, 0.3, 0.15);

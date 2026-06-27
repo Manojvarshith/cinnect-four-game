@@ -58,7 +58,7 @@ export class BoardManager {
     if (row === -1) return null; 
 
     this.grid[row][col] = this.currentPlayer;
-    
+
     const move = { col, row, player: this.currentPlayer };
     this.historyStack.push(move);
     this.replayMoves.push(col);
@@ -114,7 +114,7 @@ export class BoardManager {
     } else if (this.seriesScores.p2 >= target) {
       this.seriesWinner = 2;
     }
-    
+
     return {
       scores: this.seriesScores,
       seriesWinner: this.seriesWinner,
@@ -123,7 +123,7 @@ export class BoardManager {
   }
 
   checkWin() {
-    
+
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS - 3; c++) {
         const val = this.grid[r][c];

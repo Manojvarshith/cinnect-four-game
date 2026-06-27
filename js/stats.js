@@ -17,7 +17,7 @@ export function addXp(amount) {
     currentLevel++;
     xpNeeded = getXpRequiredForLevel(currentLevel);
   }
-  
+
   profile.level = currentLevel;
   profile.rank = getRankTitle(currentLevel);
   storage.saveProfile(profile);
@@ -43,7 +43,7 @@ function getRankTitle(level) {
 export function recordMatch(winner, gameMode, difficulty, movesCount, durationSec, openingCol, movesList = []) {
   const stats = storage.getStats();
   const history = storage.getHistory();
-  
+
   stats.gamesPlayed++;
   stats.totalMatchTime += durationSec;
 
@@ -90,7 +90,7 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
     duration: durationSec,
     movesList: [...movesList]
   };
-  
+
   history.unshift(newMatch); 
   if (history.length > 50) history.pop(); 
   storage.saveHistory(history);
@@ -105,7 +105,7 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
     } else {
       xpGained = 150; 
     }
-    
+
     if (stats.currentStreak > 1) {
       xpGained += stats.currentStreak * 15;
     }
@@ -129,7 +129,7 @@ export function recordMatch(winner, gameMode, difficulty, movesCount, durationSe
 function updateDailyStreak(stats) {
   const todayStr = new Date().toDateString();
   const daily = stats.dailyStreak;
-  
+
   if (daily.lastPlayedDate === null) {
     daily.streakCount = 1;
   } else {
@@ -137,7 +137,7 @@ function updateDailyStreak(stats) {
     const todayDate = new Date(todayStr);
     const diffTime = Math.abs(todayDate - lastDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) {
       daily.streakCount++;
     } else if (diffDays > 1) {
@@ -195,7 +195,7 @@ export function exportStatsAsJson() {
   const jsonStr = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
+
   const a = document.createElement('a');
   a.href = url;
   a.download = `connect_four_pro_stats_${Date.now()}.json`;
