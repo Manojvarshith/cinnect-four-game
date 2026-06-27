@@ -1412,8 +1412,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   applyPreferences();
 
-  setTimeout(() => {
-    document.getElementById('screen-splash').style.display = 'none';
-    navigateTo('dashboard');
-  }, 2200);
+  navigateTo('dashboard');
+  document.body.classList.add('app-loaded');
 });

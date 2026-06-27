@@ -162,6 +162,12 @@ body {
   height: 100vh;
   z-index: 10;
   position: relative;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.app-loaded .app-layout {
+  opacity: 1;
 }
 
 .sidebar {
