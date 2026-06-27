@@ -40,7 +40,6 @@ Play locally with a friend or test your skills against a highly tactical Minimax
 
 ```
 connect-four/
-├── .gitignore         # Ignores IDE files and logs
 ├── index.html         # Main app markup & DOM containers
 ├── style.css          # Glassmorphic layouts, neon glows & animations
 ├── script.js          # Main board engine, score memory, and Minimax AI
